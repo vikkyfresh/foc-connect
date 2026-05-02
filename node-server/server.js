@@ -9,7 +9,8 @@ const io = socketIo(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    transports: ['websocket', 'polling']
 });
 
 // MySQL connection for InfinityFree database
@@ -17,7 +18,8 @@ const db = mysql.createConnection({
     host: 'sql200.infinityfree.com',
     user: 'if0_41808042',
     password: 'f86pbwvj',
-    database: 'if0_41808042_foc_connect'
+    database: 'if0_41808042_foc_connect',
+    connectTimeout: 60000
 });
 
 db.connect((err) => {
@@ -28,24 +30,29 @@ db.connect((err) => {
     }
 });
 
+// Keep connection alive
+setInterval(() => {
+    db.query('SELECT 1', (err) => {
+        if (err) console.log('MySQL keepalive error:', err);
+        else console.log('MySQL keepalive OK');
+    });
+}, 30000);
+
 // Store online users
 const onlineUsers = {};
 
 io.on('connection', (socket) => {
     console.log('🟢 New user connected:', socket.id);
     
-    // User joins with their user ID
     socket.on('user-joined', (userId) => {
         onlineUsers[userId] = socket.id;
-        console.log(`👤 User ${userId} is online`);
+        console.log(`👤 User ${userId} is online (${Object.keys(onlineUsers).length} online)`);
         io.emit('online-users', Object.keys(onlineUsers));
     });
     
-    // User sends a message
     socket.on('send-message', async (data) => {
         const { from_user_id, to_user_id, group_id, message } = data;
         
-        // Save to database with initial status 'sent'
         const query = `INSERT INTO messages (from_user_id, to_user_id, group_id, message, sent_at, status) 
                        VALUES (?, ?, ?, ?, NOW(), 'sent')`;
         
@@ -57,7 +64,6 @@ io.on('connection', (socket) => {
             
             const messageId = result.insertId;
             
-            // Get the message with sender info
             db.query(`SELECT m.*, u.name as sender_name 
                       FROM messages m 
                       JOIN users u ON m.from_user_id = u.id 
@@ -66,23 +72,19 @@ io.on('connection', (socket) => {
                 
                 const newMessage = rows[0];
                 
-                // Send to group or individual
                 if (group_id) {
                     io.to(`group_${group_id}`).emit('new-message', newMessage);
                 } else if (to_user_id) {
                     const recipientSocketId = onlineUsers[to_user_id];
                     if (recipientSocketId) {
-                        // Recipient is online - mark as delivered
                         db.query(`UPDATE messages SET status = 'delivered', delivered_at = NOW() WHERE id = ?`, [messageId]);
                         newMessage.status = 'delivered';
                         io.to(recipientSocketId).emit('new-message', newMessage);
-                        // Notify sender about delivery
                         io.to(onlineUsers[from_user_id]).emit('message-status-update', { 
                             message_id: messageId, 
                             status: 'delivered' 
                         });
                     } else {
-                        // Recipient offline - keep as sent
                         io.to(onlineUsers[from_user_id]).emit('new-message', newMessage);
                     }
                 }
@@ -90,13 +92,11 @@ io.on('connection', (socket) => {
         });
     });
     
-    // Mark message as read (blue tick)
     socket.on('mark-message-read', (data) => {
         const { message_id, user_id, from_user_id } = data;
         
         db.query(`UPDATE messages SET read_at = NOW(), status = 'read' WHERE id = ?`, [message_id], (err) => {
             if (!err && onlineUsers[from_user_id]) {
-                // Notify sender that message was read
                 io.to(onlineUsers[from_user_id]).emit('message-read', { 
                     message_id: message_id, 
                     user_id: user_id 
@@ -105,17 +105,14 @@ io.on('connection', (socket) => {
         });
     });
     
-    // Mark all messages in a chat as read
     socket.on('mark-chat-read', (data) => {
         const { user_id, chat_partner_id, group_id } = data;
         
         if (group_id) {
-            // For group chats
             const query = `UPDATE messages SET read_at = NOW(), status = 'read' 
                            WHERE group_id = ? AND from_user_id != ? AND read_at IS NULL`;
             db.query(query, [group_id, user_id]);
         } else if (chat_partner_id) {
-            // For private chats
             const query = `UPDATE messages SET read_at = NOW(), status = 'read' 
                            WHERE ((from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)) 
                            AND read_at IS NULL`;
@@ -123,18 +120,15 @@ io.on('connection', (socket) => {
         }
     });
     
-    // User joins a group room
     socket.on('join-group', (groupId) => {
         socket.join(`group_${groupId}`);
         console.log(`📢 User joined group: ${groupId}`);
     });
     
-    // User leaves a group
     socket.on('leave-group', (groupId) => {
         socket.leave(`group_${groupId}`);
     });
     
-    // Typing indicator
     socket.on('typing', (data) => {
         const { from_user_id, to_user_id, group_id, isTyping } = data;
         
@@ -151,7 +145,6 @@ io.on('connection', (socket) => {
         }
     });
     
-    // User disconnects
     socket.on('disconnect', () => {
         const userId = Object.keys(onlineUsers).find(key => onlineUsers[key] === socket.id);
         if (userId) {
@@ -172,13 +165,14 @@ app.get('/api/messages/:type/:id', (req, res) => {
         query = `SELECT m.*, u.name as sender_name 
                  FROM messages m 
                  JOIN users u ON m.from_user_id = u.id 
-                 WHERE m.group_id = ? AND m.is_deleted_by_moderator = 0
+                 WHERE m.group_id = ? AND (m.is_deleted_by_moderator = 0 OR m.is_deleted_by_moderator IS NULL)
                  ORDER BY m.sent_at ASC LIMIT 100`;
         db.query(query, [id], (err, rows) => {
             if (err) {
-                res.json({ error: err.message });
+                console.error('API error:', err);
+                res.status(500).json({ error: err.message });
             } else {
-                res.json(rows);
+                res.json(rows || []);
             }
         });
     } else {
@@ -189,9 +183,10 @@ app.get('/api/messages/:type/:id', (req, res) => {
                  ORDER BY m.sent_at ASC LIMIT 100`;
         db.query(query, [id, id], (err, rows) => {
             if (err) {
-                res.json({ error: err.message });
+                console.error('API error:', err);
+                res.status(500).json({ error: err.message });
             } else {
-                res.json(rows);
+                res.json(rows || []);
             }
         });
     }
@@ -209,19 +204,23 @@ app.get('/api/user-groups/:userId', (req, res) => {
     
     db.query(query, [userId], (err, rows) => {
         if (err) {
-            res.json({ error: err.message });
+            res.status(500).json({ error: err.message });
         } else {
-            res.json(rows);
+            res.json(rows || []);
         }
     });
 });
 
-// Wake endpoint to keep server alive
+// Root endpoint
 app.get('/', (req, res) => {
-    res.send('Chat server is running');
+    res.json({ status: 'Chat server is running', online: Object.keys(onlineUsers).length });
 });
 
-// Start server
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Chat server running on port ${PORT}`);
