@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0F4C3A">
+    <title>Dashboard - FoC Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #F5F7F6;
+            overflow-x: hidden;
+        }
+
+        /* ============================================ */
+        /* DARK MODE VARIABLES */
+        /* ============================================ */
+        :root {
+            --sidebar-bg: #0F4C3A;
+            --sidebar-text: #E8F5E9;
+            --sidebar-hover: #2E7D64;
+            --sidebar-active: #3A997A;
+            --main-bg: #F5F7F6;
+            --card-bg: #FFFFFF;
+            --card-border: #E8EDEC;
+            --text-primary: #1A2E28;
+            --text-secondary: #6B7E78;
+            --text-muted: #8A9B97;
+            --button-primary: #2E7D64;
+            --badge-course-rep: #D69E2E;
+            --badge-asst-rep: #3182CE;
+            --badge-student: #2E7D64;
+            --emergency: #E53E3E;
+            --border-color: #E2E8F0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1);
+            --notification-bg: #FFFFFF;
+            --notification-hover: #F7FAFC;
+        }
+
+        body.dark {
+            --sidebar-bg: #08332A;
+            --sidebar-text: #C8E6D9;
+            --sidebar-hover: #1E5A48;
+            --sidebar-active: #2A7D64;
+            --main-bg: #1A2E28;
+            --card-bg: #2D4A40;
+            --card-border: #3A5A50;
+            --text-primary: #F5F7F6;
+            --text-secondary: #A8BFB8;
+            --text-muted: #8A9B97;
+            --button-primary: #3A997A;
+            --border-color: #3A5A50;
+            --shadow: 0 1px 3px rgba(0,0,0,0.2);
+            --notification-bg: #2D4A40;
+            --notification-hover: #3A5A50;
+        }
+
+        /* ============================================ */
+        /* LAYOUT */
+        /* ============================================ */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============================================ */
+        /* SIDEBAR (Fixed with Scroll) */
+        /* ============================================ */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-logo span {
+            font-size: 12px;
+            opacity: 0.7;
+            font-weight: normal;
+        }
+
+        .sidebar-subtitle {
+            font-size: 11px;
+            font-weight: bold;
+            opacity: 0.8;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-nav {
+            padding: 0 16px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 12px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--sidebar-hover);
+        }
+
+        .nav-item.active {
+            background: var(--sidebar-active);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .nav-text {
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .nav-badge {
+            background: #E53E3E;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 20px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+
+        /* ============================================ */
+        /* MAIN CONTENT */
+        /* ============================================ */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+
+        /* ============================================ */
+        /* TOP HEADER */
+        /* ============================================ */
+        .top-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Current Date/Time Display */
+        .current-datetime {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--main-bg);
+            padding: 6px 12px;
+            border-radius: 40px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-toggle {
+            background: var(--main-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        /* Notification Bell */
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .notification-btn:hover {
+            background: var(--main-bg);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #E53E3E;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* Notification Dropdown */
+        .notification-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 24px;
+            width: 340px;
+            background: var(--notification-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .notification-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: var(--notification-hover);
+        }
+
+        .notification-item.unread {
+            background: rgba(46, 125, 100, 0.15);
+        }
+
+        .notification-title {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Profile */
+        .profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 40px;
+            background: var(--main-bg);
+        }
+
+        .profile-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--button-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* ============================================ */
+        /* DASHBOARD CARDS */
+        /* ============================================ */
+        .dashboard-container {
+            padding: 24px;
+        }
+
+        /* Student Card */
+        .student-card {
+            background: linear-gradient(135deg, var(--card-bg) 0%, var(--card-bg) 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .student-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--button-primary), var(--badge-course-rep));
+        }
+
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .student-info h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .student-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .role-badge {
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .role-badge.course-rep {
+            background: var(--badge-course-rep);
+            color: #1A202C;
+        }
+
+        .role-badge.asst-rep {
+            background: var(--badge-asst-rep);
+            color: white;
+        }
+
+        .role-badge.student {
+            background: var(--badge-student);
+            color: white;
+        }
+
+        /* Grid Layout for Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-link {
+            font-size: 13px;
+            color: var(--button-primary);
+            text-decoration: none;
+        }
+
+        /* Announcement Items */
+        .announcement-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .announcement-item:last-child {
+            border-bottom: none;
+        }
+
+        .announcement-title {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .announcement-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .announcement-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .emergency {
+            border-left: 3px solid var(--emergency);
+            padding-left: 12px;
+        }
+
+        /* Chat Items */
+        .chat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .chat-item:last-child {
+            border-bottom: none;
+        }
+
+        .chat-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .chat-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .chat-badge {
+            background: var(--button-primary);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        /* Course Items */
+        .course-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .course-item:last-child {
+            border-bottom: none;
+        }
+
+        .course-code {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .course-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .course-progress {
+            font-size: 13px;
+            color: var(--button-primary);
+            font-weight: 500;
+        }
+
+        /* Assignment Items */
+        .assignment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .assignment-item:last-child {
+            border-bottom: none;
+        }
+
+        .assignment-title {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .assignment-due {
+            font-size: 11px;
+            color: var(--emergency);
+        }
+
+        /* Full Width Card */
+        .full-width-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .deadline-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .deadline-item:last-child {
+            border-bottom: none;
+        }
+
+        .deadline-title {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .deadline-date {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            flex: 1;
+            background: var(--main-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+
+        .quick-btn:hover {
+            background: var(--button-primary);
+            color: white;
+            border-color: var(--button-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+            .sidebar .nav-text,
+            .sidebar .sidebar-subtitle,
+            .sidebar-footer .nav-text {
+                display: none;
+            }
+            .sidebar-header {
+                text-align: center;
+                padding: 20px 10px;
+            }
+            .sidebar-logo {
+                font-size: 24px;
+            }
+            .sidebar-logo span {
+                display: none;
+            }
+            .main-content {
+                margin-left: 80px;
+            }
+            .nav-item {
+                justify-content: center;
+                padding: 12px;
+            }
+            .nav-icon {
+                font-size: 24px;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .current-datetime {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar .nav-text,
+            .sidebar .sidebar-subtitle {
+                display: block;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .top-header {
+                padding: 12px 16px;
+            }
+            .dashboard-container {
+                padding: 16px;
+            }
+            .student-header {
+                flex-direction: column;
+            }
+            .student-details {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .header-actions {
+                gap: 12px;
+            }
+            .profile-name {
+                display: none;
+            }
+            .hamburger {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .hamburger {
+                display: none;
+            }
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- Sidebar with Scroll -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                🌿 FoC Connect<span> | Faculty of Computing</span>
+            </div>
+            <div class="sidebar-subtitle">🏛️ FACULTY OF COMPUTING</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Chat</span>
+                <span class="nav-badge">3</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📢</span>
+                <span class="nav-text">Announcements</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📚</span>
+                <span class="nav-text">Courses</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">Assignments</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Calendar</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Directory</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Gradebook</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-text">Notifications</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">👨‍🏫</span>
+                <span class="nav-text">My Lecturers</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📱</span>
+                <span class="nav-text">Mobile App</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">❓</span>
+                <span class="nav-text">Help Center</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🚪</span>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="hamburger" onclick="toggleSidebar()">☰</button>
+                <div class="page-title">Dashboard</div>
+            </div>
+            <div class="header-actions">
+                <div class="current-datetime" id="currentDateTime">
+                    📅 Loading...
+                </div>
+                <button class="dark-toggle" onclick="toggleDarkMode()" id="darkToggle">
+                    🌙 Dark
+                </button>
+                <div style="position: relative;">
+                    <button class="notification-btn" onclick="toggleNotifications()">
+                        🔔
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">Notifications</div>
+                        <div class="notification-item unread">
+                            <div class="notification-title">📢 Dean: Faculty exam schedule released</div>
+                            <div class="notification-time">🕐 Today, 9:00 AM</div>
+                        </div>
+                        <div class="notification-item unread">
+                            <div class="notification-title">💬 New message from Jane Smith</div>
+                            <div class="notification-time">🕐 Yesterday, 3:30 PM</div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-title">📝 Assignment graded: CSC301 Midterm</div>
+                            <div class="notification-time">🕐 Oct 25, 2024 · 2:15 PM</div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-title">📢 HOD: Department meeting tomorrow</div>
+                            <div class="notification-time">🕐 Oct 24, 2024 · 11:00 AM</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-btn">
+                    <div class="profile-avatar">JD</div>
+                    <div class="profile-name">John Doe</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-container">
+            <!-- Student Card -->
+            <div class="student-card">
+                <div class="student-header">
+                    <div class="student-info">
+                        <h2>John Doe</h2>
+                        <div class="student-details">
+                            <div class="detail-item">
+                                <span>🎓</span> 23CS1001
+                            </div>
+                            <div class="detail-item">
+                                <span>🏛️</span> Computer Science
+                            </div>
+                            <div class="detail-item">
+                                <span>📚</span> 300L
+                            </div>
+                            <div class="detail-item">
+                                <span>📧</span> john.doe@foc.edu
+                            </div>
+                            <div class="detail-item">
+                                <span>📱</span> +234 801 234 5678
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="role-badge course-rep">🟡 Course Rep</span>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="alert('New Chat - Will connect to messaging')">💬 New Chat</button>
+                    <button class="quick-btn" onclick="alert('Announcements - Coming soon')">📢 View Announcements</button>
+                    <button class="quick-btn" onclick="alert('Submit Assignment - Coming soon')">📝 Submit Assignment</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Recent Announcements -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">📢 Recent Announcements</div>
+                        <a href="#" class="card-link" onclick="alert('All announcements - Coming soon')">View all →</a>
+                    </div>
+                    <div class="announcement-item emergency">
+                        <div class="announcement-title">🔴 DEAN: Faculty exam schedule released</div>
+                        <div class="announcement-meta">
+                            <span>👤 By Prof. James Okonkwo</span>
+                            <span>🕐 Today, 9:00 AM</span>
+                        </div>
+                    </div>
+                    <div class="announcement-item">
+                        <div class="announcement-title">📘 HOD: Lab hours changed for CSC301</div>
+                        <div class="announcement-meta">
+                            <span>👤 By Dr. Michael Okafor</span>
+                            <span>🕐 Yesterday, 3:00 PM</span>
+                        </div>
+                    </div>
+                    <div class="announcement-item">
+                        <div class="announcement-title">📝 Exam Officer: CSC300L exam timetable</div>
+                        <div class="announcement-meta">
+                            <span>👤 By Dr. Sarah Adeyemi</span>
+                            <span>🕐 October 25, 2024</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Chats -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">💬 Active Chats</div>
+                        <a href="#" class="card-link" onclick="alert('All chats - Coming soon')">View all →</a>
+                    </div>
+                    <div class="chat-item">
+                        <div>
+                            <div class="chat-name">CS 300L Group</div>
+                            <div class="chat-meta">12 new messages</div>
+                        </div>
+                        <span class="chat-badge">9:41 AM</span>
+                    </div>
+                    <div class="chat-item">
+                        <div>
+                            <div class="chat-name">Jane Smith</div>
+                            <div class="chat-meta">Typing...</div>
+                        </div>
+                        <span class="chat-badge">Yesterday</span>
+                    </div>
+                    <div class="chat-item">
+                        <div>
+                            <div class="chat-name">Dr. Grace Eze (Lecturer)</div>
+                            <div class="chat-meta">Assignment deadline extended</div>
+                        </div>
+                        <span class="chat-badge">Oct 24</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- My Courses -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">📚 My Courses</div>
+                        <a href="#" class="card-link" onclick="alert('All courses - Coming soon')">View all →</a>
+                    </div>
+                    <div class="course-item">
+                        <div>
+                            <div class="course-code">CSC301</div>
+                            <div class="course-name">Data Structures and Algorithms</div>
+                        </div>
+                        <div class="course-progress">78% · 2 new posts</div>
+                    </div>
+                    <div class="course-item">
+                        <div>
+                            <div class="course-code">CSC303</div>
+                            <div class="course-name">Operating Systems</div>
+                        </div>
+                        <div class="course-progress">2 pending assignments</div>
+                    </div>
+                    <div class="course-item">
+                        <div>
+                            <div class="course-code">CSC305</div>
+                            <div class="course-name">Computer Networks</div>
+                        </div>
+                        <div class="course-progress">Quiz on Friday</div>
+                    </div>
+                    <div class="course-item">
+                        <div>
+                            <div class="course-code">CSC307</div>
+                            <div class="course-name">Database Management Systems</div>
+                        </div>
+                        <div class="course-progress">Project due Nov 15</div>
+                    </div>
+                </div>
+
+                <!-- Pending Assignments -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-title">📝 Pending Assignments</div>
+                        <a href="#" class="card-link" onclick="alert('All assignments - Coming soon')">View all →</a>
+                    </div>
+                    <div class="assignment-item">
+                        <div>
+                            <div class="assignment-title">CSC301 Assignment 1</div>
+                            <div class="chat-meta">Data Structures Implementation</div>
+                        </div>
+                        <div class="assignment-due">Due: Oct 20, 11:59PM</div>
+                    </div>
+                    <div class="assignment-item">
+                        <div>
+                            <div class="assignment-title">CSC303 Quiz 2</div>
+                            <div class="chat-meta">Operating Systems Concepts</div>
+                        </div>
+                        <div class="assignment-due">Tomorrow, 10:00 AM</div>
+                    </div>
+                    <div class="assignment-item">
+                        <div>
+                            <div class="assignment-title">CSC305 Lab Report</div>
+                            <div class="chat-meta">Network Simulation</div>
+                        </div>
+                        <div class="assignment-due">Oct 25, 11:59PM</div>
+                    </div>
+                    <div class="assignment-item">
+                        <div>
+                            <div class="assignment-title">CSC307 Project Proposal</div>
+                            <div class="chat-meta">Database Design</div>
+                        </div>
+                        <div class="assignment-due">Oct 28, 5:00PM</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Deadlines (Full Width) -->
+            <div class="full-width-card">
+                <div class="card-header">
+                    <div class="card-title">📅 Upcoming Deadlines</div>
+                    <a href="#" class="card-link" onclick="alert('Calendar - Coming soon')">View calendar →</a>
+                </div>
+                <div class="deadline-item">
+                    <div class="deadline-title">📝 CSC301 Assignment 1</div>
+                    <div class="deadline-date">Due Oct 20, 2024 (2 days left)</div>
+                </div>
+                <div class="deadline-item">
+                    <div class="deadline-title">📝 CSC303 Quiz 2</div>
+                    <div class="deadline-date">Tomorrow, 10:00 AM</div>
+                </div>
+                <div class="deadline-item">
+                    <div class="deadline-title">📢 Department Meeting (300L)</div>
+                    <div class="deadline-date">Oct 25, 2024 · 2:00 PM</div>
+                </div>
+                <div class="deadline-item">
+                    <div class="deadline-title">📝 CSC301 Assignment 2</div>
+                    <div class="deadline-date">Oct 30, 2024 (10 days left)</div>
+                </div>
+                <div class="deadline-item">
+                    <div class="deadline-title">📝 CSC307 Project Proposal</div>
+                    <div class="deadline-date">Oct 28, 2024 · 5:00 PM</div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Update current date and time
+    function updateDateTime() {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        const formattedDate = now.toLocaleDateString('en-US', options);
+        document.getElementById('currentDateTime').innerHTML = `📅 ${formattedDate}`;
+    }
+    
+    // Update immediately and then every minute
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+
+    // Toggle Sidebar for Mobile
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // Toggle Dark Mode
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark');
+        const toggle = document.getElementById('darkToggle');
+        if (document.body.classList.contains('dark')) {
+            toggle.innerHTML = '☀️ Light';
+            localStorage.setItem('darkMode', 'enabled');
+        } else {
+            toggle.innerHTML = '🌙 Dark';
+            localStorage.setItem('darkMode', 'disabled');
+        }
+    }
+
+    // Toggle Notifications Dropdown
+    function toggleNotifications() {
+        const dropdown = document.getElementById('notificationDropdown');
+        dropdown.classList.toggle('show');
+    }
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('notificationDropdown');
+        const btn = document.querySelector('.notification-btn');
+        if (dropdown && btn && !btn.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    // Check for dark mode preference
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark');
+        document.getElementById('darkToggle').innerHTML = '☀️ Light';
+    }
+</script>
+
+</body>
+</html>
