@@ -1,0 +1,23 @@
+services:
+  # Node.js WebSocket Chat Server
+  - type: web
+    name: foc-connect-websocket
+    runtime: node
+    buildCommand: cd node-server && npm install
+    startCommand: cd node-server && node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+    plan: free
+
+  # PHP Web Server
+  - type: web
+    name: foc-connect-php
+    runtime: image
+    image:
+      url: php:8.2-apache
+    buildCommand: |
+      docker-php-ext-install mysqli pdo pdo_mysql
+      a2enmod rewrite
+    startCommand: apache2-foreground
+    plan: free
