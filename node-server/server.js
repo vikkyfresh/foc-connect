@@ -81,10 +81,11 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 102
 // DATABASE CONNECTION
 // ============================================
 const db = mysql.createConnection({
-    host: 'sql200.infinityfree.com',
-    user: 'if0_41808042',
-    password: 'f86pbwvj',
-    database: 'if0_41808042_foc_connect',
+    host: 'btpaf0bjadqhld71gzms-mysql.services.clever-cloud.com',
+    port: 3306,
+    user: 'usaypg7enbwrjvnm',
+    password: '0jjwQuQBJ48iRZp6EynT',
+    database: 'btpaf0bjadqhld71gzms',
     connectTimeout: 60000
 });
 
