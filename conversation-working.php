@@ -7,17 +7,28 @@ if(!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 $user_name = $_SESSION['name'];
 $user_role = $_SESSION['role'];
+
+// Get current user's department safely
+$dept_result = mysqli_query($conn, "SELECT department_id FROM users WHERE id = $user_id LIMIT 1");
+$dept_row = mysqli_fetch_assoc($dept_result);
+$dept_id = $dept_row ? (int)$dept_row['department_id'] : 0;
 
 // Get user's groups
 $groups_query = "SELECT cg.* FROM chat_groups cg JOIN group_members gm ON cg.id = gm.group_id WHERE gm.user_id = $user_id LIMIT 10";
 $groups = mysqli_query($conn, $groups_query);
 
-// Get other students for DMs
-$students_query = "SELECT id, name, matric_number FROM users WHERE department_id = (SELECT department_id FROM users WHERE id = $user_id) AND id != $user_id AND role = 'student' LIMIT 20";
+// Get other users for DMs — safe query, no subquery
+if($dept_id > 0) {
+    $students_query = "SELECT id, name, matric_number FROM users WHERE department_id = $dept_id AND id != $user_id AND is_active = 1 LIMIT 20";
+} else {
+    // Admin/dean/no-dept users see all students
+    $students_query = "SELECT id, name, matric_number FROM users WHERE id != $user_id AND is_active = 1 AND role = 'student' LIMIT 20";
+}
 $students = mysqli_query($conn, $students_query);
+?>
 ?>
 
 <!DOCTYPE html>
