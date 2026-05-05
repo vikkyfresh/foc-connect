@@ -1,18 +1,15 @@
 <?php
-$host = 'localhost';
-$user = 'root';
-$password = '';  // XAMPP default is empty
-$database = 'foc_connect';
-
-$conn = mysqli_connect($host, $user, $password, $database);
+// FoC Connect - Database Connection (InfinityFree MySQL)
+$conn = mysqli_connect(
+    'sql200.infinityfree.com',
+    'if0_41808042',
+    'f86pbwvj',
+    'if0_41808042_foc_connect'
+);
 
 if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
+    die('Connection failed: ' . mysqli_connect_error());
 }
 
-// Set charset
-mysqli_set_charset($conn, "utf8mb4");
-
-// For debugging - remove in production
-// echo "Connected successfully";
+mysqli_set_charset($conn, 'utf8mb4');
 ?>
