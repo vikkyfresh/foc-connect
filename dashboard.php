@@ -91,6 +91,7 @@ $assignments_query = "SELECT a.*, c.course_code, c.course_name
                       WHERE e.student_id = $user_id AND a.due_date > NOW()
                       ORDER BY a.due_date ASC LIMIT 5";
 $assignments = mysqli_query($conn, $assignments_query);
+$has_assignments = mysqli_num_rows($assignments) > 0;
 
 // Get course materials count
 $materials_query = "SELECT COUNT(*) as total FROM course_materials cm
@@ -115,60 +116,580 @@ if($user_role == 'lecturer') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0F4C3A">
+    
+    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-152x152.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FoC Connect">
+    
     <title>Dashboard - FoC Connect</title>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #F5F7F6; overflow-x: hidden; transition: background 0.3s ease; }
-        :root { --sidebar-bg: #0F4C3A; --sidebar-text: #E8F5E9; --sidebar-hover: #2E7D64; --sidebar-active: #3A997A; --main-bg: #F5F7F6; --card-bg: #FFFFFF; --card-border: #E8EDEC; --text-primary: #1A2E28; --text-secondary: #6B7E78; --text-muted: #8A9B97; --button-primary: #2E7D64; --emergency: #E53E3E; --border-color: #E2E8F0; --detail-bg: #F5F7F6; }
-        body.dark { --sidebar-bg: #08332A; --sidebar-text: #C8E6D9; --sidebar-hover: #1E5A48; --sidebar-active: #2A7D64; --main-bg: #1A2E28; --card-bg: #2D4A40; --card-border: #3A5A50; --text-primary: #F5F7F6; --text-secondary: #A8BFB8; --text-muted: #8A9B97; --button-primary: #3A997A; --border-color: #3A5A50; --detail-bg: #3A5A50; }
-
-        .sidebar { width: 280px; background: var(--sidebar-bg); color: var(--sidebar-text); position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; transition: transform 0.3s ease; }
-        .sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-logo { font-size: 24px; font-weight: 700; }
-        .sidebar-subtitle { font-size: 11px; font-weight: bold; opacity: 0.8; margin-top: 6px; letter-spacing: 0.5px; }
-        .sidebar-nav { padding: 20px 16px; }
-        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin: 4px 0; border-radius: 12px; color: var(--sidebar-text); text-decoration: none; transition: all 0.2s; }
-        .nav-item:hover, .nav-item.active { background: var(--sidebar-hover); }
-        .nav-icon { font-size: 22px; width: 28px; }
-        .nav-text { font-size: 15px; flex: 1; }
-        .nav-badge { background: #E53E3E; color: white; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-        .main-content { margin-left: 280px; min-height: 100vh; width: calc(100% - 280px); transition: margin 0.3s; }
-        
-        .top-header { background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; transition: background 0.3s ease; }
-        .dashboard-container { padding: 24px; max-width: 1200px; margin: 0 auto; }
-        .user-card { background: var(--card-bg); border-radius: 24px; padding: 28px; margin-bottom: 24px; border: 1px solid var(--card-border); position: relative; overflow: hidden; }
-        .user-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--button-primary), #D69E2E); }
-        .detail-item { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; background: var(--detail-bg); padding: 10px 18px; border-radius: 40px; margin: 4px; }
-        .detail-item.highlight { background: var(--button-primary); color: white; }
-        .copy-btn { background: rgba(255,255,255,0.2); border: none; cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 20px; margin-left: 8px; color: white; }
-        
-        .role-badge { padding: 8px 20px; border-radius: 40px; font-size: 14px; font-weight: 600; display: inline-block; margin-top: 10px; }
-        .role-badge.student { background: #2E7D64; color: white; }
-        .quick-btn { background: var(--detail-bg); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 40px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-primary); transition: all 0.2s; margin-right: 10px; margin-top: 10px;}
-        .quick-btn:hover { background: var(--button-primary); color: white; }
-
-        .dashboard-two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-        .dashboard-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
-        .stats-card { background: var(--card-bg); border-radius: 20px; padding: 20px; text-align: center; border: 1px solid var(--card-border); }
-        .stats-number { font-size: 36px; font-weight: 700; color: var(--button-primary); }
-        
-        .announcement-item { padding: 14px 0; border-bottom: 1px solid var(--border-color); }
-        .announcement-item.emergency { border-left: 4px solid var(--emergency); padding-left: 15px; background: rgba(229, 62, 62, 0.05); }
-        
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; }
-            .dashboard-two-column { grid-template-columns: 1fr; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .hamburger { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); display: none; }
-        @media (max-width: 768px) { .hamburger { display: block; } }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #F5F7F6;
+            overflow-x: hidden;
+            transition: background 0.3s ease;
+        }
+
+        /* Dark Mode Variables */
+        :root {
+            --sidebar-bg: #0F4C3A;
+            --sidebar-text: #E8F5E9;
+            --sidebar-hover: #2E7D64;
+            --sidebar-active: #3A997A;
+            --main-bg: #F5F7F6;
+            --card-bg: #FFFFFF;
+            --card-border: #E8EDEC;
+            --text-primary: #1A2E28;
+            --text-secondary: #6B7E78;
+            --text-muted: #8A9B97;
+            --button-primary: #2E7D64;
+            --emergency: #E53E3E;
+            --border-color: #E2E8F0;
+            --detail-bg: #F5F7F6;
+        }
+
+        body.dark {
+            --sidebar-bg: #08332A;
+            --sidebar-text: #C8E6D9;
+            --sidebar-hover: #1E5A48;
+            --sidebar-active: #2A7D64;
+            --main-bg: #1A2E28;
+            --card-bg: #2D4A40;
+            --card-border: #3A5A50;
+            --text-primary: #F5F7F6;
+            --text-secondary: #A8BFB8;
+            --text-muted: #8A9B97;
+            --button-primary: #3A997A;
+            --border-color: #3A5A50;
+            --detail-bg: #3A5A50;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-logo {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .sidebar-subtitle {
+            font-size: 11px;
+            font-weight: bold;
+            opacity: 0.8;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-nav {
+            padding: 20px 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 12px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--sidebar-hover);
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            width: 28px;
+        }
+
+        .nav-text {
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .nav-badge {
+            background: #E53E3E;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 20px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: auto;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            width: calc(100% - 280px);
+        }
+
+        .top-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .current-datetime {
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--detail-bg);
+            padding: 6px 12px;
+            border-radius: 40px;
+        }
+
+        .profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 40px;
+            background: var(--detail-bg);
+        }
+
+        .profile-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--button-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .dark-toggle {
+            background: var(--detail-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        .dark-toggle:hover {
+            background: var(--button-primary);
+            color: white;
+        }
+
+        .dashboard-container {
+            padding: 24px;
+            max-width: 100%;
+        }
+
+        .user-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .user-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--button-primary), #D69E2E);
+        }
+
+        .user-info h2 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            background: var(--detail-bg);
+            padding: 10px 18px;
+            border-radius: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .detail-item.highlight {
+            background: #2E7D64;
+            color: white;
+            font-weight: 500;
+        }
+        body.dark .detail-item.highlight {
+            background: #3A997A;
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+            color: white;
+        }
+
+        .role-badge {
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .role-badge.student { background: #2E7D64; color: white; }
+        .role-badge.class-rep { background: #D69E2E; color: #1A202C; }
+        .role-badge.financial-sec { background: #3182CE; color: white; }
+        .role-badge.pro { background: #805AD5; color: white; }
+        .role-badge.gen-sec { background: #DD6B20; color: white; }
+        .role-badge.vp { background: #E53E3E; color: white; }
+        .role-badge.dept-pres { background: #8B4513; color: white; }
+        .role-badge.level-coord { background: #6B46C1; color: white; }
+        .role-badge.lecturer { background: #3182CE; color: white; }
+        .role-badge.dept-exam { background: #00A3C4; color: white; }
+        .role-badge.hod { background: #DD6B20; color: white; }
+        .role-badge.faculty-exam { background: #00A3C4; color: white; }
+        .role-badge.dean { background: #C53030; color: white; }
+
+        .quick-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            background: var(--detail-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: var(--button-primary);
+            color: white;
+            border-color: var(--button-primary);
+        }
+
+        .dashboard-two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,00.04);
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .full-width-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-link {
+            font-size: 13px;
+            color: var(--button-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .announcement-item {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .announcement-item:last-child {
+            border-bottom: none;
+        }
+
+        .announcement-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .announcement-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .emergency {
+            border-left: 3px solid var(--emergency);
+            padding-left: 12px;
+            background: rgba(229, 62, 62, 0.1);
+            margin-left: -12px;
+        }
+
+        .course-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .course-item:last-child {
+            border-bottom: none;
+        }
+
+        .course-code {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .course-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .course-status {
+            font-size: 12px;
+            color: var(--button-primary);
+            background: rgba(46, 125, 100, 0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .assignment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .assignment-item:last-child {
+            border-bottom: none;
+        }
+
+        .assignment-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .assignment-course {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .assignment-due {
+            font-size: 12px;
+            color: var(--emergency);
+            font-weight: 500;
+        }
+
+        .stats-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+        .stats-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--button-primary);
+        }
+        .stats-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .eruda-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: #2E7D64;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-size: 24px;
+            transition: transform 0.2s;
+            border: none;
+        }
+        .eruda-toggle:hover {
+            transform: scale(1.05);
+        }
+        @media (min-width: 769px) {
+            .eruda-toggle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-two-column {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .top-header {
+                padding: 12px 16px;
+            }
+            .dashboard-container {
+                padding: 16px;
+            }
+            .user-details {
+                gap: 12px;
+            }
+            .hamburger {
+                display: block;
+            }
+            .dark-toggle span {
+                display: none;
+            }
+            .dark-toggle {
+                padding: 8px 12px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .hamburger {
+                display: none;
+            }
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
     </style>
 </head>
-<body class="<?php echo ($_COOKIE['theme'] ?? '') == 'dark' ? 'dark' : ''; ?>">
+<body>
 <div style="display: flex; min-height: 100vh;">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
@@ -203,10 +724,18 @@ if($user_role == 'lecturer') {
                 <span class="nav-icon">📝</span>
                 <span class="nav-text">Assignments</span>
             </a>
-            <?php if(isset($user['is_graduated']) && $user['is_graduated'] == 1): ?>
+            <?php if($user['is_graduated'] == 1): ?>
                 <a href="alumni-directory.php" class="nav-item">
                     <span class="nav-icon">🎓</span>
                     <span class="nav-text">Alumni Directory</span>
+                </a>
+                <a href="job-board.php" class="nav-item">
+                    <span class="nav-icon">💼</span>
+                    <span class="nav-text">Job Board</span>
+                </a>
+                <a href="mentorship.php" class="nav-item">
+                    <span class="nav-icon">🤝</span>
+                    <span class="nav-text">Mentorship</span>
                 </a>
             <?php endif; ?>
             <?php if(in_array($user_role, ['dean', 'hod', 'admin', 'lecturer', 'level_coordinator'])): ?>
@@ -214,13 +743,21 @@ if($user_role == 'lecturer') {
                     <span class="nav-icon">🛡️</span>
                     <span class="nav-text">Moderation</span>
                 </a>
+                <a href="progression.php" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Progression</span>
+                </a>
+                <a href="admin-roles.php" class="nav-item">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Role Management</span>
+                </a>
             <?php endif; ?>
             <a href="settings.php" class="nav-item">
                 <span class="nav-icon">⚙️</span>
                 <span class="nav-text">Settings</span>
             </a>
         </nav>
-        <div class="sidebar-footer" style="padding: 20px;">
+        <div class="sidebar-footer">
             <a href="logout.php" class="nav-item">
                 <span class="nav-icon">🚪</span>
                 <span class="nav-text">Logout</span>
@@ -228,101 +765,262 @@ if($user_role == 'lecturer') {
         </div>
     </aside>
 
+    <!-- Main Content -->
     <main class="main-content">
         <header class="top-header">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <button class="hamburger" onclick="toggleSidebar()">☰</button>
-                <div class="page-title" style="font-weight: bold; font-size: 1.2rem;">Dashboard</div>
+                <div class="page-title">Dashboard</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="quick-btn" style="padding: 8px 16px;" onclick="toggleDarkMode()">🌙 Mode</button>
-                <div class="profile-avatar" style="width:35px; height:35px; background:var(--sidebar-bg); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">
-                    <?php echo strtoupper(substr($user_name, 0, 1)); ?>
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div class="current-datetime" id="currentDateTime"></div>
+                <button class="dark-toggle" id="darkModeToggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+                <div class="profile-btn">
+                    <div class="profile-avatar"><?php echo strtoupper(substr($user_name, 0, 2)); ?></div>
+                    <div><?php echo htmlspecialchars($user_name); ?></div>
                 </div>
             </div>
         </header>
 
         <div class="dashboard-container">
+            <!-- User Card -->
             <div class="user-card">
                 <div class="user-info">
                     <h2>Welcome back, <?php echo htmlspecialchars($user_name); ?>! 👋</h2>
-                    <div class="user-details" style="margin-top: 15px;">
+                    <div class="user-details">
                         <?php if($user['matric_number']): ?>
-                            <div class="detail-item highlight">🎓 <strong>Matric:</strong> <?php echo htmlspecialchars($user['matric_number']); ?></div>
+                            <div class="detail-item highlight">
+                                🎓 <strong>Matric No:</strong> <?php echo htmlspecialchars($user['matric_number']); ?>
+                                <button class="copy-btn" onclick="copyToClipboard('<?php echo $user['matric_number']; ?>')">📋 Copy</button>
+                            </div>
                         <?php endif; ?>
-                        <div class="detail-item">🏛️ <?php echo htmlspecialchars($user['dept_name'] ?? 'Faculty of Computing'); ?></div>
+                        <div class="detail-item highlight">
+                            🏛️ <strong>Department:</strong> <?php echo htmlspecialchars($user['dept_name'] ?? 'Faculty of Computing'); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo htmlspecialchars($user['dept_name'] ?? 'Faculty of Computing'); ?>')">📋 Copy</button>
+                        </div>
                         <?php if($user['level_name']): ?>
-                            <div class="detail-item">📚 <?php echo htmlspecialchars($user['level_name']); ?></div>
+                            <div class="detail-item highlight">
+                                📚 <strong>Level:</strong> <?php echo htmlspecialchars($user['level_name']); ?>
+                                <button class="copy-btn" onclick="copyToClipboard('<?php echo htmlspecialchars($user['level_name']); ?>')">📋 Copy</button>
+                            </div>
                         <?php endif; ?>
+                        <div class="detail-item highlight">
+                            📧 <strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?>
+                            <button class="copy-btn" onclick="copyToClipboard('<?php echo $user['email']; ?>')">📋 Copy</button>
+                        </div>
                     </div>
+                </div>
+                <div>
                     <span class="role-badge <?php echo $role_class; ?>"><?php echo $role_display; ?></span>
                 </div>
                 <div class="quick-actions">
-                    <button class="quick-btn" onclick="window.location.href='messaging.php'">💬 Message</button>
-                    <button class="quick-btn" onclick="window.location.href='materials.php'">📚 Materials</button>
+                    <button class="quick-btn" onclick="window.location.href='messaging.php'">💬 New Chat</button>
+                    <button class="quick-btn" onclick="window.location.href='announcements.php'">📢 Announcements</button>
+                    <button class="quick-btn" onclick="window.location.href='materials.php'">📚 Course Materials</button>
                 </div>
             </div>
 
-            <div class="dashboard-two-column">
+            <!-- Stats Row -->
+            <div class="dashboard-two-column" style="margin-bottom: 24px;">
                 <div class="stats-card">
                     <div class="stats-number"><?php echo $has_courses ? mysqli_num_rows($courses) : ($user_role == 'lecturer' ? $teaching_courses : '0'); ?></div>
-                    <div class="stats-label">Courses</div>
+                    <div class="stats-label"><?php echo ($user_role == 'lecturer') ? '👨‍🏫 Teaching Courses' : '📚 Enrolled Courses'; ?></div>
                 </div>
                 <div class="stats-card">
                     <div class="stats-number"><?php echo mysqli_num_rows($assignments); ?></div>
-                    <div class="stats-label">Due Assignments</div>
+                    <div class="stats-label">📝 Pending Assignments</div>
                 </div>
             </div>
 
+            <!-- Two Column Layout -->
             <div class="dashboard-two-column">
-                <!-- Announcements -->
+                <!-- Recent Announcements -->
                 <div class="dashboard-card">
                     <div class="card-header">
-                        <span style="font-weight:bold;">📢 Announcements</span>
-                        <a href="announcements.php" style="font-size: 12px; color: var(--button-primary); text-decoration:none;">View All</a>
+                        <div class="card-title">📢 Recent Announcements</div>
+                        <a href="announcements.php" class="card-link">View all →</a>
                     </div>
                     <?php if(mysqli_num_rows($announcements) > 0): ?>
                         <?php while($ann = mysqli_fetch_assoc($announcements)): ?>
                             <div class="announcement-item <?php echo $ann['is_emergency'] ? 'emergency' : ''; ?>">
-                                <div style="font-weight:600;"><?php echo htmlspecialchars($ann['title']); ?></div>
-                                <div style="font-size:11px; color:var(--text-muted);"><?php echo date('M d', strtotime($ann['sent_at'])); ?> • <?php echo htmlspecialchars($ann['author_name']); ?></div>
+                                <div class="announcement-title">
+                                    <?php echo htmlspecialchars($ann['title']); ?>
+                                    <?php if($ann['is_emergency']): ?> <span style="color:var(--emergency);">🔴</span><?php endif; ?>
+                                </div>
+                                <div class="announcement-meta">
+                                    <span>👤 <?php echo htmlspecialchars($ann['author_name']); ?></span>
+                                    <span>📅 <?php echo date('M d, Y g:i A', strtotime($ann['sent_at'])); ?></span>
+                                </div>
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <p style="text-align:center; padding:20px; color:var(--text-muted);">No new announcements</p>
+                        <div class="empty-state">📭 No announcements yet</div>
                     <?php endif; ?>
                 </div>
 
-                <!-- Course List -->
+                <!-- My Courses -->
                 <div class="dashboard-card">
                     <div class="card-header">
-                        <span style="font-weight:bold;">📚 My Courses</span>
+                        <div class="card-title"><?php echo ($user_role == 'lecturer') ? '👨‍🏫 My Teaching Courses' : '📚 My Courses'; ?></div>
+                        <a href="materials.php" class="card-link">View all →</a>
                     </div>
                     <?php if($has_courses): ?>
                         <?php while($course = mysqli_fetch_assoc($courses)): ?>
-                            <div style="padding: 10px 0; border-bottom: 1px solid var(--border-color);">
-                                <div style="font-weight:600; font-size:14px;"><?php echo htmlspecialchars($course['course_code']); ?></div>
-                                <div style="font-size:12px; color:var(--text-secondary);"><?php echo htmlspecialchars($course['course_name']); ?></div>
+                            <div class="course-item">
+                                <div>
+                                    <div class="course-code"><?php echo htmlspecialchars($course['course_code']); ?></div>
+                                    <div class="course-name"><?php echo htmlspecialchars($course['course_name']); ?></div>
+                                </div>
+                                <div class="course-status">In Progress</div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php elseif($user_role == 'lecturer' && $teaching_courses > 0): ?>
+                        <?php
+                        $teaching_query = "SELECT c.* FROM courses c WHERE c.lecturer_id = $user_id LIMIT 5";
+                        $teaching_result = mysqli_query($conn, $teaching_query);
+                        while($course = mysqli_fetch_assoc($teaching_result)):
+                        ?>
+                            <div class="course-item">
+                                <div>
+                                    <div class="course-code"><?php echo htmlspecialchars($course['course_code']); ?></div>
+                                    <div class="course-name"><?php echo htmlspecialchars($course['course_name']); ?></div>
+                                </div>
+                                <div class="course-status">Teaching</div>
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <p style="text-align:center; padding:20px; color:var(--text-muted);">No courses found</p>
+                        <div class="empty-state">📚 No courses <?php echo ($user_role == 'lecturer') ? 'to teach' : 'enrolled'; ?> yet</div>
                     <?php endif; ?>
                 </div>
+            </div>
+
+            <!-- Pending Assignments -->
+            <div class="full-width-card">
+                <div class="card-header">
+                    <div class="card-title">📝 Pending Assignments</div>
+                    <a href="assignments.php" class="card-link">View all →</a>
+                </div>
+                <?php if($has_assignments): ?>
+                    <?php while($assign = mysqli_fetch_assoc($assignments)): ?>
+                        <div class="assignment-item">
+                            <div>
+                                <div class="assignment-title"><?php echo htmlspecialchars($assign['title']); ?></div>
+                                <div class="assignment-course"><?php echo htmlspecialchars($assign['course_code']); ?> - <?php echo htmlspecialchars($assign['course_name']); ?></div>
+                            </div>
+                            <div class="assignment-due">Due: <?php echo date('M d, Y g:i A', strtotime($assign['due_date'])); ?></div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="empty-state">✅ No pending assignments. Good job!</div>
+                <?php endif; ?>
             </div>
         </div>
     </main>
 </div>
 
+<!-- Eruda Button -->
+<button class="eruda-toggle" onclick="toggleEruda()">🐞</button>
+
 <script>
+    function toggleEruda() {
+        if (typeof eruda !== 'undefined') {
+            eruda.toggle();
+        } else {
+            alert('Eruda loading... Please wait a moment');
+        }
+    }
+    
+    (function() {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+        script.onload = function() {
+            eruda.init();
+            console.log('Eruda initialized successfully');
+            if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                eruda.show();
+            }
+        };
+        script.onerror = function() {
+            console.log('Eruda failed to load - check internet connection');
+        };
+        document.head.appendChild(script);
+    })();
+    
+    window.testNotification = function() {
+        if (Notification.permission === 'granted') {
+            new Notification('🎓 FoC Connect Test', {
+                body: 'Push notifications are working on your device!',
+                icon: '/foc-connect/assets/icons/icon-192x192.png',
+                vibrate: [200, 100, 200]
+            });
+            alert('✅ Test notification sent! Check your notifications.');
+        } else {
+            alert('❌ Notification permission not granted. Run requestPermission() first.');
+        }
+    };
+    
+    window.requestPermission = async function() {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') {
+            alert('✅ Permission granted! You can now receive notifications.');
+            testNotification();
+        } else {
+            alert('❌ Permission denied. Please enable notifications in browser settings.');
+        }
+    };
+    
+    window.checkPushStatus = function() {
+        let status = 'Service Worker: ' + ('serviceWorker' in navigator ? '✅' : '❌') + '\n';
+        status += 'Push Manager: ' + ('PushManager' in window ? '✅' : '❌') + '\n';
+        status += 'Notification Permission: ' + Notification.permission + '\n';
+        alert(status);
+    };
+    
+    function updateDateTime() {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        document.getElementById('currentDateTime').innerHTML = `📅 ${now.toLocaleDateString('en-US', options)}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+    
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
     }
+    
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('📋 Copied: ' + text);
+        });
+    }
+    
     function toggleDarkMode() {
         document.body.classList.toggle('dark');
-        const isDark = document.body.classList.contains('dark');
-        document.cookie = "theme=" + (isDark ? "dark" : "light") + ";path=/";
+        const toggle = document.getElementById('darkModeToggle');
+        if (document.body.classList.contains('dark')) {
+            toggle.innerHTML = '☀️ Light Mode';
+            localStorage.setItem('darkMode', 'enabled');
+        } else {
+            toggle.innerHTML = '🌙 Dark Mode';
+            localStorage.setItem('darkMode', 'disabled');
+        }
     }
+    
+    if('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registered:', reg))
+                .catch(err => console.log('Service Worker failed:', err));
+        });
+    }
+    
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark');
+        document.getElementById('darkModeToggle').innerHTML = '☀️ Light Mode';
+    }
+    
+    console.log('FoC Connect Dashboard Loaded');
+    console.log('Commands: requestPermission(), testNotification(), checkPushStatus()');
 </script>
 </body>
 </html>
