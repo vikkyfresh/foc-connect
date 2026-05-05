@@ -1,4 +1,10 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
+include 'includes/db.php';
+// ... rest of your code
 session_start();
 include 'includes/db.php';
 
@@ -28,7 +34,6 @@ if($dept_id > 0) {
     $students_query = "SELECT id, name, matric_number FROM users WHERE id != $user_id AND is_active = 1 AND role = 'student' LIMIT 20";
 }
 $students = mysqli_query($conn, $students_query);
-?>
 ?>
 
 <!DOCTYPE html>
