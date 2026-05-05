@@ -450,7 +450,7 @@ if($user_role == 'lecturer') {
             border: 1px solid var(--card-border);
             border-radius: 20px;
             padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,00.04);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             height: 100%;
             transition: all 0.3s ease;
         }
@@ -702,7 +702,7 @@ if($user_role == 'lecturer') {
                 <span class="nav-icon">📊</span>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a href="messaging.php" class="nav-item">
+            <a href="messaging.php" target="_blank" class="nav-item">
                 <span class="nav-icon">💬</span>
                 <span class="nav-text">Chat</span>
                 <?php if($unread_count > 0): ?>
@@ -814,7 +814,7 @@ if($user_role == 'lecturer') {
                     <span class="role-badge <?php echo $role_class; ?>"><?php echo $role_display; ?></span>
                 </div>
                 <div class="quick-actions">
-                    <button class="quick-btn" onclick="window.location.href='messaging.php'">💬 New Chat</button>
+                    <button class="quick-btn" onclick="window.open('messaging.php', '_blank')">💬 New Chat</button>
                     <button class="quick-btn" onclick="window.location.href='announcements.php'">📢 Announcements</button>
                     <button class="quick-btn" onclick="window.location.href='materials.php'">📚 Course Materials</button>
                 </div>
