@@ -115,6 +115,31 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+// ============================================
+// USER SYNC ENDPOINT
+// Called by InfinityFree PHP when a new user registers
+// ============================================
+app.post('/api/sync-user', (req, res) => {
+    const { id, name, email, role, department_id, level_id, matric_number, is_active } = req.body;
+    if (!id || !name || !email) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const query = `
+        INSERT INTO users (id, name, email, role, department_id, level_id, matric_number, is_active, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced_from_php')
+        ON DUPLICATE KEY UPDATE
+            name = VALUES(name), email = VALUES(email), role = VALUES(role),
+            department_id = VALUES(department_id), level_id = VALUES(level_id),
+            matric_number = VALUES(matric_number), is_active = VALUES(is_active)
+    `;
+    db.query(query, [id, name, email, role || 'student', department_id || null, level_id || null, matric_number || null, is_active !== undefined ? is_active : 1], (err) => {
+        if (err) { console.error('Sync error:', err); return res.status(500).json({ error: err.message }); }
+        console.log(`User synced: ${name} (${email})`);
+        res.json({ success: true });
+    });
+});
+
+
 
 app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
