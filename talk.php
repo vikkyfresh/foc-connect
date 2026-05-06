@@ -27,8 +27,6 @@ $students_query = "SELECT id, name, matric_number FROM users
                    AND id != $user_id AND role = 'student' 
                    ORDER BY name ASC LIMIT 20";
 $students = mysqli_query($conn, $students_query);
-
-// Get favorite chat IDs from localStorage won't work here, will handle in JS
 ?>
 
 <!DOCTYPE html>
@@ -61,7 +59,6 @@ $students = mysqli_query($conn, $students_query);
             width: 100%;
         }
 
-        /* Light Lemon Green Theme with Cross Pattern */
         .chat-container {
             display: flex;
             height: 100%;
@@ -76,7 +73,6 @@ $students = mysqli_query($conn, $students_query);
             );
         }
 
-        /* WhatsApp-style Sidebar */
         .chat-sidebar {
             width: 380px;
             background: #FFFFFF;
@@ -89,7 +85,6 @@ $students = mysqli_query($conn, $students_query);
             box-shadow: 2px 0 8px rgba(0,0,0,0.02);
         }
 
-        /* Header - Fresh Lemon Green */
         .sidebar-header {
             background: #8BC34A;
             color: #1B5E20;
@@ -106,7 +101,6 @@ $students = mysqli_query($conn, $students_query);
             color: #2E5C1E;
         }
 
-        /* WhatsApp-style Tabs */
         .tabs {
             display: flex;
             background: #FFFFFF;
@@ -129,7 +123,6 @@ $students = mysqli_query($conn, $students_query);
             border-bottom-color: #8BC34A;
         }
 
-        /* Search Bar */
         .search-box {
             padding: 10px 16px;
             background: #FFFFFF;
@@ -144,7 +137,6 @@ $students = mysqli_query($conn, $students_query);
             outline: none;
         }
 
-        /* Chat List Container */
         .chat-list-container {
             flex: 1;
             overflow-y: auto;
@@ -209,7 +201,6 @@ $students = mysqli_query($conn, $students_query);
             font-size: 13px;
         }
 
-        /* Main Chat Area */
         .chat-main {
             flex: 1;
             display: flex;
@@ -218,7 +209,6 @@ $students = mysqli_query($conn, $students_query);
             height: 100%;
         }
 
-        /* Chat Header */
         .chat-header {
             padding: 16px 20px;
             background: rgba(255,255,255,0.96);
@@ -246,7 +236,6 @@ $students = mysqli_query($conn, $students_query);
         .status-badge.connected { background: #8BC34A; color: white; }
         .status-badge.disconnected { background: #EF9A9A; color: white; }
 
-        /* Messages Area */
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -263,7 +252,6 @@ $students = mysqli_query($conn, $students_query);
             );
         }
 
-        /* Message Bubbles */
         .message {
             display: flex;
             margin-bottom: 8px;
@@ -306,7 +294,6 @@ $students = mysqli_query($conn, $students_query);
         .tick-delivered { color: #9AAB9A; }
         .tick-read { color: #8BC34A; }
 
-        /* Input Area */
         .input-area {
             padding: 12px 16px;
             background: rgba(255,255,255,0.96);
@@ -356,15 +343,11 @@ $students = mysqli_query($conn, $students_query);
             justify-content: center;
             transition: all 0.2s;
         }
-        .send-btn:hover {
-            background: #7CB342;
-        }
         .send-btn:disabled {
             background: #C8DCC8;
             cursor: not-allowed;
         }
 
-        /* Emoji Picker Container */
         .emoji-picker-container {
             position: absolute;
             bottom: 70px;
@@ -395,7 +378,6 @@ $students = mysqli_query($conn, $students_query);
             font-size: 15px;
         }
 
-        /* Mobile Styles */
         .back-btn {
             display: none;
             background: none;
@@ -736,10 +718,13 @@ $students = mysqli_query($conn, $students_query);
         closeSidebar();
     }
 
+    // ============================================
+    // FIXED: Changed chat-api.php to api-data.php
+    // ============================================
     function loadMessages(type, id) {
         messagesDiv.innerHTML = '<div class="empty-chat">🍃 Loading messages...</div>';
 
-        fetch(`chat-api.php?action=messages&type=${type}&id=${id}`)
+        fetch(`api-data.php?action=messages&type=${type}&id=${id}`)
             .then(res => res.json())
             .then(data => {
                 if(data.success && data.data) {
@@ -768,7 +753,6 @@ $students = mysqli_query($conn, $students_query);
             senderName = `<strong style="font-size:12px;">${escapeHtml(msg.sender_name)}</strong><br>`;
         }
 
-        // Parse emojis in message
         let messageText = escapeHtml(msg.message);
         
         let tickHtml = '';
