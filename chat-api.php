@@ -1,23 +1,39 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
 session_start();
 
-include 'includes/db.php';
-
-// Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
     echo json_encode(['error' => 'Not logged in']);
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
+
+// ============================================
+// CONNECT TO CLEVER CLOUD DATABASE
+// (Same as your Node.js chat server)
+// ============================================
+$cc_host = 'btpaf0bjadqhld71gzms-mysql.services.clever-cloud.com';
+$cc_user = 'usaypg7enbwrjvnm';
+$cc_pass = '0jjwQuQBJ48iRZp6EynT';
+$cc_name = 'btpaf0bjadqhld71gzms';
+$cc_port = 3306;
+
+$conn = mysqli_connect($cc_host, $cc_user, $cc_pass, $cc_name, $cc_port);
+
+if (!$conn) {
+    echo json_encode(['error' => 'Database connection failed: ' . mysqli_connect_error()]);
+    exit();
+}
+
+mysqli_set_charset($conn, 'utf8mb4');
+
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-// Handle different actions
 switch($action) {
     case 'groups':
+        // Get user's groups from Clever Cloud
         $groups = mysqli_query($conn, "SELECT cg.id, cg.name FROM chat_groups cg 
                                        JOIN group_members gm ON cg.id = gm.group_id 
                                        WHERE gm.user_id = $user_id");
@@ -58,4 +74,6 @@ switch($action) {
     default:
         echo json_encode(['error' => 'Invalid action']);
 }
+
+mysqli_close($conn);
 ?>
