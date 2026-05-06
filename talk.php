@@ -36,39 +36,45 @@ $students = mysqli_query($conn, $students_query);
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #0a0a0a;
+            background: #E8F5E9;
             height: 100vh;
             overflow: hidden;
             position: fixed;
             width: 100%;
         }
 
-        /* Chat Background Pattern */
+        /* Light Lemon Green Theme with Cross Pattern */
         .chat-container {
             display: flex;
             height: 100%;
             width: 100%;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBmaWxsPSIjMjA4MDYwIiBmaWxsLW9wYWNpdHk9IjAuMDMiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48cGF0aCBkPSJNMjAgMjBhMjAgMjAgMCAwIDEgMjAgMjAgMjAgMjAgMCAwIDEtMjAgMjAgMjAgMjAgMCAwIDEtMjAtMjAgMjAgMjAgMCAwIDEgMjAtMjB6IiBmaWxsPSIjMjA4MDYwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz48L3N2Zz4=');
-            background-repeat: repeat;
-            background-size: 40px 40px;
+            background-color: #F1F8E9;
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(139, 195, 74, 0.08) 0px,
+                rgba(139, 195, 74, 0.08) 2px,
+                transparent 2px,
+                transparent 8px
+            );
         }
 
         /* WhatsApp-style Sidebar */
         .chat-sidebar {
             width: 380px;
-            background: white;
+            background: #FFFFFF;
             display: flex;
             flex-direction: column;
             height: 100%;
-            border-right: 1px solid #e8e8e8;
+            border-right: 1px solid #E0E8E0;
             transition: transform 0.3s ease;
             z-index: 100;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.02);
         }
 
-        /* Header */
+        /* Header - Fresh Lemon Green */
         .sidebar-header {
-            background: #0F4C3A;
-            color: white;
+            background: #8BC34A;
+            color: #1B5E20;
             padding: 20px 20px 16px;
         }
         .sidebar-header h2 {
@@ -78,14 +84,15 @@ $students = mysqli_query($conn, $students_query);
         }
         .sidebar-header p {
             font-size: 13px;
-            opacity: 0.8;
+            opacity: 0.85;
+            color: #2E5C1E;
         }
 
         /* WhatsApp-style Tabs */
         .tabs {
             display: flex;
-            background: white;
-            border-bottom: 1px solid #e8e8e8;
+            background: #FFFFFF;
+            border-bottom: 1px solid #E8EDE8;
             padding: 0 16px;
         }
         .tab {
@@ -95,35 +102,39 @@ $students = mysqli_query($conn, $students_query);
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            color: #6B7E78;
+            color: #8A9B8A;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
         }
         .tab.active {
-            color: #0F4C3A;
-            border-bottom-color: #0F4C3A;
+            color: #8BC34A;
+            border-bottom-color: #8BC34A;
         }
 
         /* Search Bar */
         .search-box {
             padding: 10px 16px;
-            background: white;
+            background: #FFFFFF;
         }
         .search-box input {
             width: 100%;
             padding: 10px 16px;
-            background: #F5F7F6;
+            background: #F5F8F0;
             border: none;
             border-radius: 30px;
             font-size: 14px;
             outline: none;
         }
+        .search-box input:focus {
+            background: #FFFFFF;
+            box-shadow: 0 0 0 2px #8BC34A33;
+        }
 
-        /* Chat List */
+        /* Chat List Container */
         .chat-list-container {
             flex: 1;
             overflow-y: auto;
-            background: white;
+            background: #FFFFFF;
         }
         .chat-list {
             display: flex;
@@ -135,23 +146,23 @@ $students = mysqli_query($conn, $students_query);
             gap: 12px;
             padding: 14px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #F0F4EC;
             transition: background 0.2s;
         }
         .chat-item:hover {
-            background: #F5F7F6;
+            background: #F8FBF4;
         }
         .chat-avatar {
             width: 50px;
             height: 50px;
-            background: #2E7D64;
+            background: #C5E1A5;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
             flex-shrink: 0;
-            color: white;
+            color: #558B2F;
         }
         .chat-info {
             flex: 1;
@@ -160,22 +171,22 @@ $students = mysqli_query($conn, $students_query);
         .chat-name {
             font-weight: 600;
             font-size: 15px;
-            color: #1A2E28;
+            color: #2E3B2E;
         }
         .chat-preview {
             font-size: 13px;
-            color: #8A9B97;
+            color: #9AAB9A;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .chat-time {
             font-size: 11px;
-            color: #8A9B97;
+            color: #B8C7B8;
             text-align: right;
         }
         .unread-badge {
-            background: #25D366;
+            background: #8BC34A;
             color: white;
             font-size: 11px;
             padding: 2px 6px;
@@ -191,23 +202,23 @@ $students = mysqli_query($conn, $students_query);
             height: 100%;
         }
 
-        /* Chat Header */
+        /* Chat Header - Light Lemon */
         .chat-header {
             padding: 16px 20px;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #E8EDE8;
             display: flex;
             align-items: center;
             gap: 12px;
         }
         .chat-header h3 {
             font-size: 18px;
-            color: #1A2E28;
+            color: #2E3B2E;
         }
         .chat-header p {
             font-size: 12px;
-            color: #8A9B97;
+            color: #8BC34A;
         }
         .status-badge {
             font-size: 10px;
@@ -216,10 +227,10 @@ $students = mysqli_query($conn, $students_query);
             display: inline-block;
             margin-left: 8px;
         }
-        .status-badge.connected { background: #25D366; color: white; }
-        .status-badge.disconnected { background: #f44336; color: white; }
+        .status-badge.connected { background: #8BC34A; color: white; }
+        .status-badge.disconnected { background: #EF9A9A; color: white; }
 
-        /* Messages Area with Background */
+        /* Messages Area with Cross Pattern Background */
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -227,9 +238,13 @@ $students = mysqli_query($conn, $students_query);
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSIjMjA4MDYwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz48L3N2Zz4=');
-            background-repeat: repeat;
-            background-size: 30px 30px;
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(139, 195, 74, 0.06) 0px,
+                rgba(139, 195, 74, 0.06) 2px,
+                transparent 2px,
+                transparent 60px
+            );
         }
 
         /* Message Bubbles */
@@ -249,37 +264,38 @@ $students = mysqli_query($conn, $students_query);
             border-radius: 20px;
             font-size: 14px;
             word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .message.sent .bubble {
             background: #DCF8C6;
-            color: #1A2E28;
+            color: #2E3B2E;
             border-bottom-right-radius: 4px;
         }
         .message.received .bubble {
             background: white;
-            color: #1A2E28;
-            border: 1px solid #e8e8e8;
+            color: #2E3B2E;
+            border: 1px solid #E0E8E0;
             border-bottom-left-radius: 4px;
         }
         .message-info {
             font-size: 10px;
             margin-top: 4px;
-            color: #8A9B97;
+            color: #9AAB9A;
             display: flex;
             gap: 4px;
             justify-content: flex-end;
         }
         .tick { font-size: 11px; margin-left: 4px; }
-        .tick-sent { color: #8A9B97; }
-        .tick-delivered { color: #8A9B97; }
-        .tick-read { color: #34B7F1; }
+        .tick-sent { color: #9AAB9A; }
+        .tick-delivered { color: #9AAB9A; }
+        .tick-read { color: #8BC34A; }
 
         /* Input Area */
         .input-area {
             padding: 12px 16px;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0,0,0,0.05);
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid #E8EDE8;
             display: flex;
             gap: 10px;
             align-items: center;
@@ -287,14 +303,18 @@ $students = mysqli_query($conn, $students_query);
         .input-area input {
             flex: 1;
             padding: 12px 16px;
-            background: #F5F7F6;
+            background: #F5F8F0;
             border: none;
             border-radius: 30px;
             outline: none;
             font-size: 15px;
         }
+        .input-area input:focus {
+            background: #FFFFFF;
+            box-shadow: 0 0 0 2px #8BC34A33;
+        }
         .input-area button {
-            background: #2E7D64;
+            background: #8BC34A;
             color: white;
             border: none;
             width: 44px;
@@ -305,25 +325,31 @@ $students = mysqli_query($conn, $students_query);
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s;
+        }
+        .input-area button:hover {
+            background: #7CB342;
+            transform: scale(1.02);
         }
         .input-area button:disabled {
-            background: #ccc;
+            background: #C8DCC8;
             cursor: not-allowed;
         }
 
         .typing-indicator {
             font-size: 12px;
-            color: #8A9B97;
+            color: #8BC34A;
             padding: 6px 16px;
             font-style: italic;
             min-height: 32px;
-            background: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.85);
         }
 
         .empty-chat {
             text-align: center;
-            padding: 40px 20px;
-            color: #8A9B97;
+            padding: 60px 20px;
+            color: #8BC34A;
+            font-size: 15px;
         }
 
         /* Mobile Styles */
@@ -339,16 +365,21 @@ $students = mysqli_query($conn, $students_query);
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #2E7D64;
+            background: #8BC34A;
             color: white;
             border: none;
-            width: 50px;
-            height: 50px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             font-size: 24px;
             cursor: pointer;
             z-index: 98;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 3px 12px rgba(139, 195, 74, 0.3);
+            transition: all 0.2s;
+        }
+        .mobile-hamburger:hover {
+            transform: scale(1.03);
+            background: #7CB342;
         }
 
         @media (max-width: 768px) {
@@ -378,7 +409,7 @@ $students = mysqli_query($conn, $students_query);
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0,0,0,0.5);
+                background: rgba(46, 59, 46, 0.5);
                 z-index: 199;
                 display: none;
             }
@@ -412,7 +443,7 @@ $students = mysqli_query($conn, $students_query);
 
         <div class="chat-list-container">
             <div class="chat-list" id="chatList">
-                <div class="chat-section" style="padding: 12px 16px; font-weight: 600; color: #6B7E78; font-size: 12px;">📁 GROUPS</div>
+                <div class="chat-section" style="padding: 12px 16px; font-weight: 600; color: #8BC34A; font-size: 12px;">📁 GROUPS</div>
                 <?php if(mysqli_num_rows($groups) > 0): ?>
                     <?php while($group = mysqli_fetch_assoc($groups)): ?>
                     <div class="chat-item" data-id="<?php echo $group['id']; ?>" data-type="group" data-name="<?php echo htmlspecialchars($group['name']); ?>">
@@ -426,7 +457,7 @@ $students = mysqli_query($conn, $students_query);
                     <?php endwhile; ?>
                 <?php endif; ?>
 
-                <div class="chat-section" style="padding: 12px 16px; font-weight: 600; color: #6B7E78; font-size: 12px;">👤 CONTACTS</div>
+                <div class="chat-section" style="padding: 12px 16px; font-weight: 600; color: #8BC34A; font-size: 12px;">👤 CONTACTS</div>
                 <?php if(mysqli_num_rows($students) > 0): ?>
                     <?php while($student = mysqli_fetch_assoc($students)): ?>
                     <div class="chat-item" data-id="<?php echo $student['id']; ?>" data-type="user" data-name="<?php echo htmlspecialchars($student['name']); ?>">
@@ -438,7 +469,7 @@ $students = mysqli_query($conn, $students_query);
                     </div>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <div style="padding: 20px; text-align: center; color: #8A9B97;">No contacts available</div>
+                    <div style="padding: 20px; text-align: center; color: #9AAB9A;">No contacts available</div>
                 <?php endif; ?>
             </div>
         </div>
@@ -529,7 +560,7 @@ $students = mysqli_query($conn, $students_query);
         });
     }
 
-    // Star/Favorite functionality (long press or menu)
+    // Long press / right-click for favorites
     document.querySelectorAll('.chat-item').forEach(item => {
         item.addEventListener('contextmenu', function(e) {
             e.preventDefault();
@@ -538,10 +569,10 @@ $students = mysqli_query($conn, $students_query);
             const isFav = localStorage.getItem('fav_' + id) === 'true';
             if(isFav) {
                 localStorage.removeItem('fav_' + id);
-                alert('Removed from Favorites');
+                alert('❌ Removed from Favorites');
             } else {
                 localStorage.setItem('fav_' + id, 'true');
-                alert('Added to Favorites');
+                alert('⭐ Added to Favorites');
             }
             filterChats(document.querySelector('.tab.active').dataset.tab);
         });
@@ -583,7 +614,7 @@ $students = mysqli_query($conn, $students_query);
         socket.on('connect_error', () => {
             isConnected = false;
             statusSpan.className = 'status-badge disconnected';
-            statusSpan.innerHTML = 'Offline <button onclick="wakeServer()" style="background:#ff9800; border:none; padding:2px 8px; border-radius:12px;">Wake</button>';
+            statusSpan.innerHTML = 'Offline <button onclick="wakeServer()" style="background:#8BC34A; border:none; padding:2px 8px; border-radius:12px;">Wake</button>';
         });
 
         socket.on('new-message', (msg) => {
@@ -634,7 +665,7 @@ $students = mysqli_query($conn, $students_query);
     }
 
     function loadMessages(type, id) {
-        messagesDiv.innerHTML = '<div class="empty-chat">Loading messages...</div>';
+        messagesDiv.innerHTML = '<div class="empty-chat">🍃 Loading messages...</div>';
 
         fetch(`chat-api.php?action=messages&type=${type}&id=${id}`)
             .then(res => res.json())
@@ -741,7 +772,7 @@ $students = mysqli_query($conn, $students_query);
         if(e.key === 'Enter') sendMessage();
     });
 
-    // Keep-alive
+    // Keep-alive ping every 40 seconds
     setInterval(() => {
         if(isConnected && socket) {
             socket.emit('ping');
