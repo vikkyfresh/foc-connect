@@ -4,7 +4,7 @@ header('Access-Control-Allow-Origin: *');
 session_start();
 
 if(!isset($_SESSION['user_id'])) {
-    echo json_encode(['error' => 'Not logged in']);
+    echo json_encode(['error' => 'Not logged in', 'session' => $_SESSION]);
     exit();
 }
 
@@ -19,13 +19,20 @@ $cc_port = 3306;
 $conn = mysqli_connect($cc_host, $cc_user, $cc_pass, $cc_name, $cc_port);
 
 if (!$conn) {
-    echo json_encode(['error' => 'Database connection failed']);
+    echo json_encode(['error' => 'Database connection failed: ' . mysqli_connect_error()]);
     exit();
 }
 
 mysqli_set_charset($conn, 'utf8mb4');
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+// First, check if user exists in Clever Cloud
+$user_check = mysqli_query($conn, "SELECT id, name FROM users WHERE id = $user_id");
+if(mysqli_num_rows($user_check) == 0) {
+    echo json_encode(['error' => 'User not found in Clever Cloud database', 'user_id' => $user_id]);
+    exit();
+}
 
 switch($action) {
     case 'groups':
@@ -36,7 +43,7 @@ switch($action) {
         while($row = mysqli_fetch_assoc($groups)) {
             $data[] = $row;
         }
-        echo json_encode(['success' => true, 'data' => $data]);
+        echo json_encode(['success' => true, 'data' => $data, 'count' => count($data)]);
         break;
         
     case 'contacts':
@@ -49,7 +56,7 @@ switch($action) {
         while($row = mysqli_fetch_assoc($contacts)) {
             $data[] = $row;
         }
-        echo json_encode(['success' => true, 'data' => $data]);
+        echo json_encode(['success' => true, 'data' => $data, 'dept_id' => $dept_id]);
         break;
         
     case 'messages':
@@ -76,11 +83,11 @@ switch($action) {
         while($row = mysqli_fetch_assoc($result)) {
             $messages[] = $row;
         }
-        echo json_encode(['success' => true, 'data' => $messages]);
+        echo json_encode(['success' => true, 'data' => $messages, 'count' => count($messages)]);
         break;
         
     default:
-        echo json_encode(['error' => 'Invalid action']);
+        echo json_encode(['error' => 'Invalid action', 'available_actions' => ['groups', 'contacts', 'messages']]);
 }
 
 mysqli_close($conn);
