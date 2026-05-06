@@ -10,7 +10,6 @@ if(!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Connect to Clever Cloud
 $cc_host = 'btpaf0bjadqhld71gzms-mysql.services.clever-cloud.com';
 $cc_user = 'usaypg7enbwrjvnm';
 $cc_pass = '0jjwQuQBJ48iRZp6EynT';
@@ -35,6 +34,19 @@ switch($action) {
                                        WHERE gm.user_id = $user_id");
         $data = [];
         while($row = mysqli_fetch_assoc($groups)) {
+            $data[] = $row;
+        }
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+        
+    case 'contacts':
+        $dept = mysqli_fetch_assoc(mysqli_query($conn, "SELECT department_id FROM users WHERE id = $user_id"));
+        $dept_id = $dept['department_id'];
+        $contacts = mysqli_query($conn, "SELECT id, name, matric_number FROM users 
+                                         WHERE department_id = $dept_id AND id != $user_id AND role = 'student' 
+                                         ORDER BY name ASC LIMIT 20");
+        $data = [];
+        while($row = mysqli_fetch_assoc($contacts)) {
             $data[] = $row;
         }
         echo json_encode(['success' => true, 'data' => $data]);
