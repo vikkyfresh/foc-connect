@@ -4,7 +4,7 @@ header('Access-Control-Allow-Origin: *');
 session_start();
 
 if(!isset($_SESSION['user_id'])) {
-    echo json_encode(['error' => 'Not logged in', 'session' => $_SESSION]);
+    echo json_encode(['error' => 'Not logged in']);
     exit();
 }
 
@@ -19,20 +19,13 @@ $cc_port = 3306;
 $conn = mysqli_connect($cc_host, $cc_user, $cc_pass, $cc_name, $cc_port);
 
 if (!$conn) {
-    echo json_encode(['error' => 'Database connection failed: ' . mysqli_connect_error()]);
+    echo json_encode(['error' => 'Database connection failed']);
     exit();
 }
 
 mysqli_set_charset($conn, 'utf8mb4');
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
-
-// First, check if user exists in Clever Cloud
-$user_check = mysqli_query($conn, "SELECT id, name FROM users WHERE id = $user_id");
-if(mysqli_num_rows($user_check) == 0) {
-    echo json_encode(['error' => 'User not found in Clever Cloud database', 'user_id' => $user_id]);
-    exit();
-}
 
 switch($action) {
     case 'groups':
@@ -43,12 +36,14 @@ switch($action) {
         while($row = mysqli_fetch_assoc($groups)) {
             $data[] = $row;
         }
-        echo json_encode(['success' => true, 'data' => $data, 'count' => count($data)]);
+        echo json_encode(['success' => true, 'data' => $data]);
         break;
         
     case 'contacts':
-        $dept = mysqli_fetch_assoc(mysqli_query($conn, "SELECT department_id FROM users WHERE id = $user_id"));
-        $dept_id = $dept['department_id'];
+        $dept_result = mysqli_query($conn, "SELECT department_id FROM users WHERE id = $user_id");
+        $dept_row = mysqli_fetch_assoc($dept_result);
+        $dept_id = $dept_row ? $dept_row['department_id'] : 0;
+        
         $contacts = mysqli_query($conn, "SELECT id, name, matric_number FROM users 
                                          WHERE department_id = $dept_id AND id != $user_id AND role = 'student' 
                                          ORDER BY name ASC LIMIT 20");
@@ -56,7 +51,7 @@ switch($action) {
         while($row = mysqli_fetch_assoc($contacts)) {
             $data[] = $row;
         }
-        echo json_encode(['success' => true, 'data' => $data, 'dept_id' => $dept_id]);
+        echo json_encode(['success' => true, 'data' => $data]);
         break;
         
     case 'messages':
@@ -69,6 +64,12 @@ switch($action) {
                       JOIN users u ON m.from_user_id = u.id 
                       WHERE m.group_id = $id 
                       ORDER BY m.sent_at ASC LIMIT 100";
+            $result = mysqli_query($conn, $query);
+            $messages = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                $messages[] = $row;
+            }
+            echo json_encode(['success' => true, 'data' => $messages]);
         } else {
             $query = "SELECT m.*, u.name as sender_name 
                       FROM messages m 
@@ -76,18 +77,17 @@ switch($action) {
                       WHERE (m.from_user_id = $id AND m.to_user_id = $user_id)
                          OR (m.from_user_id = $user_id AND m.to_user_id = $id)
                       ORDER BY m.sent_at ASC LIMIT 100";
+            $result = mysqli_query($conn, $query);
+            $messages = [];
+            while($row = mysqli_fetch_assoc($result)) {
+                $messages[] = $row;
+            }
+            echo json_encode(['success' => true, 'data' => $messages]);
         }
-        
-        $result = mysqli_query($conn, $query);
-        $messages = [];
-        while($row = mysqli_fetch_assoc($result)) {
-            $messages[] = $row;
-        }
-        echo json_encode(['success' => true, 'data' => $messages, 'count' => count($messages)]);
         break;
         
     default:
-        echo json_encode(['error' => 'Invalid action', 'available_actions' => ['groups', 'contacts', 'messages']]);
+        echo json_encode(['error' => 'Invalid action']);
 }
 
 mysqli_close($conn);
