@@ -7,6 +7,7 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 $user_name = $_SESSION['name'];
+$user_id = $_SESSION['user_id'];
 ?>
 
 <!DOCTYPE html>
@@ -45,6 +46,7 @@ $user_name = $_SESSION['name'];
         .section-title { padding: 10px 15px; background: #f0f0f0; font-weight: bold; font-size: 12px; color: #666; }
         @media (max-width: 768px) { .sidebar { position: fixed; left: -300px; height: 100%; z-index: 100; transition: 0.3s; } .sidebar.open { left: 0; } .menu-btn { position: fixed; bottom: 20px; right: 20px; background: #8BC34A; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; } }
         .menu-btn { display: none; }
+        @media (max-width: 768px) { .menu-btn { display: block; } }
     </style>
 </head>
 <body>
@@ -80,13 +82,15 @@ $user_name = $_SESSION['name'];
 
 <script>
     const SOCKET_URL = 'https://foc-connect-websocket.onrender.com';
-    let userId = null;
+    let userId = <?php echo $user_id; ?>;
     let socket = null;
     let isConnected = false;
     let currentChatId = null;
     let currentChatType = null;
+    let currentChatName = '';
 
     function loadChats() {
+        // Load Groups
         fetch('api-data.php?action=groups')
             .then(res => res.json())
             .then(data => {
@@ -105,6 +109,7 @@ $user_name = $_SESSION['name'];
             })
             .catch(err => console.log('Groups error:', err));
 
+        // Load Contacts
         fetch('api-data.php?action=contacts')
             .then(res => res.json())
             .then(data => {
@@ -114,7 +119,7 @@ $user_name = $_SESSION['name'];
                     data.data.forEach(contact => {
                         container.innerHTML += '<div class="chat-item" onclick="selectChat(' + contact.id + ', \'user\', \'' + escapeHtml(contact.name) + '\')">' +
                             '<div class="chat-avatar">👤</div>' +
-                            '<div><div class="chat-name">' + escapeHtml(contact.name) + '</div><div class="chat-preview">' + escapeHtml(contact.matric_number) + '</div></div>' +
+                            '<div><div class="chat-name">' + escapeHtml(contact.name) + '</div><div class="chat-preview">' + escapeHtml(contact.matric_number || 'Student') + '</div></div>' +
                             '</div>';
                     });
                 } else {
@@ -127,8 +132,9 @@ $user_name = $_SESSION['name'];
     function selectChat(id, type, name) {
         currentChatId = id;
         currentChatType = type;
-        document.getElementById('chatTitle').innerHTML = name;
-        document.getElementById('chatSubtitle').innerHTML = (type === 'group' ? 'Group Chat' : 'Private Chat');
+        currentChatName = name;
+        document.getElementById('chatTitle').innerHTML = escapeHtml(name);
+        document.getElementById('chatSubtitle').innerHTML = (type === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓');
         document.getElementById('messageInput').disabled = false;
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('messageInput').placeholder = 'Type a message...';
@@ -145,12 +151,12 @@ $user_name = $_SESSION['name'];
     }
 
     function loadMessages(type, id) {
-        document.getElementById('messages').innerHTML = '<div class="empty">Loading messages...</div>';
+        const container = document.getElementById('messages');
+        container.innerHTML = '<div class="empty">Loading messages...</div>';
         
         fetch('api-data.php?action=messages&type=' + type + '&id=' + id)
             .then(res => res.json())
             .then(data => {
-                const container = document.getElementById('messages');
                 container.innerHTML = '';
                 if(data.success && data.data && data.data.length > 0) {
                     data.data.forEach(msg => displayMessage(msg));
@@ -160,13 +166,21 @@ $user_name = $_SESSION['name'];
                 }
             })
             .catch(err => {
-                document.getElementById('messages').innerHTML = '<div class="empty">⚠️ Error loading messages</div>';
+                console.error('Load messages error:', err);
+                container.innerHTML = '<div class="empty">⚠️ Error loading messages</div>';
             });
     }
 
     function displayMessage(msg) {
-        const isSent = msg.from_user_id == userId;
+        const isSent = parseInt(msg.from_user_id) === parseInt(userId);
         const container = document.getElementById('messages');
+        
+        // Remove "No messages yet" empty div if it exists
+        const emptyDiv = container.querySelector('.empty');
+        if(emptyDiv) {
+            emptyDiv.remove();
+        }
+        
         const div = document.createElement('div');
         div.className = 'message ' + (isSent ? 'sent' : 'received');
         
@@ -175,7 +189,10 @@ $user_name = $_SESSION['name'];
             senderHtml = '<strong>' + escapeHtml(msg.sender_name) + '</strong><br>';
         }
         
-        div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(msg.message) + '<div class="message-info">' + formatTime(msg.sent_at) + '</div></div>';
+        const messageText = msg.message || msg.text || '';
+        const timeStamp = msg.sent_at || msg.created_at || new Date().toISOString();
+        
+        div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(messageText) + '<div class="message-info">' + formatTime(timeStamp) + '</div></div>';
         container.appendChild(div);
         scrollToBottom();
     }
@@ -183,12 +200,31 @@ $user_name = $_SESSION['name'];
     function sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
-        if(!message || !currentChatId) return;
-        if(!isConnected) { alert('Not connected to chat server'); return; }
         
-        const data = { from_user_id: userId, message: message };
-        if(currentChatType === 'group') data.group_id = currentChatId;
-        else data.to_user_id = currentChatId;
+        if(!message) {
+            return;
+        }
+        
+        if(!currentChatId) {
+            alert('Please select a chat first');
+            return;
+        }
+        
+        if(!isConnected) {
+            alert('Not connected to chat server. Please refresh the page.');
+            return;
+        }
+        
+        const data = { 
+            from_user_id: userId, 
+            message: message 
+        };
+        
+        if(currentChatType === 'group') {
+            data.group_id = currentChatId;
+        } else {
+            data.to_user_id = currentChatId;
+        }
         
         socket.emit('send-message', data);
         input.value = '';
@@ -198,31 +234,40 @@ $user_name = $_SESSION['name'];
         const statusSpan = document.getElementById('chatSubtitle');
         statusSpan.innerHTML = 'Connecting...';
         
-        socket = io(SOCKET_URL, { transports: ['websocket', 'polling'], reconnection: true });
+        socket = io(SOCKET_URL, { 
+            transports: ['websocket', 'polling'], 
+            reconnection: true,
+            reconnectionAttempts: 5
+        });
         
         socket.on('connect', () => {
             isConnected = true;
-            statusSpan.innerHTML = 'Connected ✓';
+            console.log('Socket connected:', socket.id);
+            if(currentChatName) {
+                statusSpan.innerHTML = (currentChatType === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓');
+            } else {
+                statusSpan.innerHTML = 'Connected ✓';
+            }
             socket.emit('user-joined', userId);
         });
         
         socket.on('disconnect', () => {
             isConnected = false;
-            statusSpan.innerHTML = 'Disconnected';
+            console.log('Socket disconnected');
+            statusSpan.innerHTML = 'Disconnected - reconnecting...';
         });
         
-        socket.on('connect_error', () => {
+        socket.on('connect_error', (error) => {
             isConnected = false;
-            statusSpan.innerHTML = 'Offline';
+            console.error('Socket error:', error);
+            statusSpan.innerHTML = 'Offline - check connection';
         });
         
         socket.on('new-message', (msg) => {
+            console.log('New message received:', msg);
             if(currentChatId && ((currentChatType === 'group' && msg.group_id == currentChatId) ||
                 (currentChatType === 'user' && (msg.from_user_id == currentChatId || msg.to_user_id == currentChatId)))) {
                 displayMessage(msg);
-                if(msg.from_user_id != userId) {
-                    socket.emit('mark-message-read', { message_id: msg.id, user_id: userId, from_user_id: msg.from_user_id });
-                }
             }
         });
     }
@@ -234,15 +279,21 @@ $user_name = $_SESSION['name'];
 
     function formatTime(datetime) {
         if(!datetime) return 'Just now';
-        const date = new Date(datetime);
-        const now = new Date();
-        const diff = now - date;
-        if(diff < 60000) return 'Just now';
-        if(diff < 3600000) return Math.floor(diff / 60000) + 'm';
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        try {
+            const date = new Date(datetime);
+            const now = new Date();
+            const diff = now - date;
+            if(diff < 60000) return 'Just now';
+            if(diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if(diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            return date.toLocaleDateString();
+        } catch(e) {
+            return 'Just now';
+        }
     }
 
     function escapeHtml(text) {
+        if(!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -252,16 +303,16 @@ $user_name = $_SESSION['name'];
         document.getElementById('sidebar').classList.toggle('open');
     }
 
-    fetch('get-user.php')
-        .then(res => res.json())
-        .then(data => {
-            userId = data.user_id;
-            connectSocket();
-            loadChats();
-        });
+    // Initialize everything
+    console.log('Page loaded, user ID:', userId);
+    connectSocket();
+    loadChats();
 
+    // Enter key to send message
     document.getElementById('messageInput').addEventListener('keypress', function(e) {
-        if(e.key === 'Enter') sendMessage();
+        if(e.key === 'Enter') {
+            sendMessage();
+        }
     });
 </script>
 </body>
