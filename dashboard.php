@@ -331,12 +331,8 @@ if ($user_role == 'lecturer') {
             <a href="dashboard.php" class="nav-item active">
                 <span class="nav-icon">📊</span><span class="nav-text">Dashboard</span>
             </a>
-            <!-- FIX: changed chat.php → conversation-working.php -->
-            <a href="conversation-working.php" class="nav-item">
+            <a href="talk.php" target="_blank" class="nav-item">
                 <span class="nav-icon">💬</span><span class="nav-text">Chat</span>
-                <?php if($unread_count > 0): ?>
-                    <span class="nav-badge"><?php echo $unread_count; ?></span>
-                <?php endif; ?>
             </a>
             <a href="announcements.php" class="nav-item">
                 <span class="nav-icon">📢</span><span class="nav-text">Announcements</span>
@@ -413,7 +409,7 @@ if ($user_role == 'lecturer') {
                     <span class="role-badge <?php echo $role_class; ?>"><?php echo $role_display; ?></span>
                 </div>
                 <div class="quick-actions">
-                    <a href="conversation-working.php" class="quick-btn">💬 Open Chat</a>
+                    <a href="talk.php" target="_blank" class="quick-btn">💬 Open Chat</a>
                     <a href="announcements.php" class="quick-btn">📢 Announcements</a>
                     <a href="materials.php" class="quick-btn">📚 Materials</a>
                     <a href="assignments.php" class="quick-btn">📝 Assignments</a>
