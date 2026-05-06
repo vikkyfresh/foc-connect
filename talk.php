@@ -1,24 +1,6 @@
 <?php
 session_start();
 
-// ============================================
-// CONNECT TO CLEVER CLOUD DATABASE
-// (Same as Node.js chat server)
-// ============================================
-$cc_host = 'btpaf0bjadqhld71gzms-mysql.services.clever-cloud.com';
-$cc_user = 'usaypg7enbwrjvnm';
-$cc_pass = '0jjwQuQBJ48iRZp6EynT';
-$cc_name = 'btpaf0bjadqhld71gzms';
-$cc_port = 3306;
-
-$conn = mysqli_connect($cc_host, $cc_user, $cc_pass, $cc_name, $cc_port);
-
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-
-mysqli_set_charset($conn, 'utf8mb4');
-
 if(!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -26,29 +8,6 @@ if(!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['name'];
-
-// Get user's groups from Clever Cloud
-$groups_query = "SELECT cg.* FROM chat_groups cg 
-                 JOIN group_members gm ON cg.id = gm.group_id 
-                 WHERE gm.user_id = $user_id 
-                 ORDER BY cg.name ASC";
-$groups_result = mysqli_query($conn, $groups_query);
-$groups = [];
-while($row = mysqli_fetch_assoc($groups_result)) {
-    $groups[] = $row;
-}
-
-// Get user info from Clever Cloud
-$user_query = "SELECT * FROM users WHERE id = $user_id";
-$user_result = mysqli_query($conn, $user_query);
-$user_data = mysqli_fetch_assoc($user_result);
-
-// Get other students for DMs (from Clever Cloud)
-$students_query = "SELECT id, name, matric_number FROM users 
-                   WHERE department_id = (SELECT department_id FROM users WHERE id = $user_id) 
-                   AND id != $user_id AND role = 'student' 
-                   ORDER BY name ASC LIMIT 20";
-$students = mysqli_query($conn, $students_query);
 ?>
 
 <!DOCTYPE html>
@@ -146,33 +105,9 @@ $students = mysqli_query($conn, $students_query);
         <div class="chat-list-container">
             <div class="chat-list" id="chatList">
                 <div class="chat-section">📁 GROUPS</div>
-                <?php if(count($groups) > 0): ?>
-                    <?php foreach($groups as $group): ?>
-                    <div class="chat-item" data-id="<?php echo $group['id']; ?>" data-type="group" data-name="<?php echo htmlspecialchars($group['name']); ?>">
-                        <div class="chat-avatar">👥</div>
-                        <div class="chat-info">
-                            <div class="chat-name"><?php echo htmlspecialchars($group['name']); ?></div>
-                            <div class="chat-preview">Group conversation</div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="empty-groups">📭 No groups yet. Contact your HOD to be added.</div>
-                <?php endif; ?>
+                <div id="groupsList"></div>
                 <div class="chat-section">👤 CONTACTS</div>
-                <?php if(mysqli_num_rows($students) > 0): ?>
-                    <?php while($student = mysqli_fetch_assoc($students)): ?>
-                    <div class="chat-item" data-id="<?php echo $student['id']; ?>" data-type="user" data-name="<?php echo htmlspecialchars($student['name']); ?>">
-                        <div class="chat-avatar">👤</div>
-                        <div class="chat-info">
-                            <div class="chat-name"><?php echo htmlspecialchars($student['name']); ?></div>
-                            <div class="chat-preview"><?php echo htmlspecialchars($student['matric_number']); ?></div>
-                        </div>
-                    </div>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <div class="empty-groups">👤 No other students in your department</div>
-                <?php endif; ?>
+                <div id="contactsList"></div>
             </div>
         </div>
     </div>
@@ -222,9 +157,171 @@ $students = mysqli_query($conn, $students_query);
     const sendBtn = document.getElementById('sendBtn');
     const chatTitle = document.getElementById('chatTitle');
     const chatSubtitle = document.getElementById('chatSubtitle');
-    const typingIndicator = document.getElementById('typingIndicator');
 
-    // Initialize Emoji Picker
+    // Load groups and contacts from API
+    function loadChatList() {
+        fetch('api-data.php?action=groups')
+            .then(res => res.json())
+            .then(data => {
+                const groupsHtml = document.getElementById('groupsList');
+                if(data.success && data.data && data.data.length > 0) {
+                    groupsHtml.innerHTML = '';
+                    data.data.forEach(group => {
+                        groupsHtml.innerHTML += `
+                            <div class="chat-item" data-id="${group.id}" data-type="group" data-name="${escapeHtml(group.name)}">
+                                <div class="chat-avatar">👥</div>
+                                <div class="chat-info">
+                                    <div class="chat-name">${escapeHtml(group.name)}</div>
+                                    <div class="chat-preview">Group conversation</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    groupsHtml.innerHTML = '<div class="empty-groups">📭 No groups yet. Contact your HOD to be added.</div>';
+                }
+                attachClickHandlers();
+            })
+            .catch(err => console.error('Error loading groups:', err));
+
+        fetch('api-data.php?action=contacts')
+            .then(res => res.json())
+            .then(data => {
+                const contactsHtml = document.getElementById('contactsList');
+                if(data.success && data.data && data.data.length > 0) {
+                    contactsHtml.innerHTML = '';
+                    data.data.forEach(contact => {
+                        contactsHtml.innerHTML += `
+                            <div class="chat-item" data-id="${contact.id}" data-type="user" data-name="${escapeHtml(contact.name)}">
+                                <div class="chat-avatar">👤</div>
+                                <div class="chat-info">
+                                    <div class="chat-name">${escapeHtml(contact.name)}</div>
+                                    <div class="chat-preview">${escapeHtml(contact.matric_number)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    contactsHtml.innerHTML = '<div class="empty-groups">👤 No other students in your department</div>';
+                }
+                attachClickHandlers();
+            })
+            .catch(err => console.error('Error loading contacts:', err));
+    }
+
+    function attachClickHandlers() {
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.removeEventListener('click', handleChatClick);
+            item.addEventListener('click', handleChatClick);
+            
+            item.removeEventListener('contextmenu', handleContextMenu);
+            item.addEventListener('contextmenu', handleContextMenu);
+        });
+    }
+
+    function handleChatClick(e) {
+        const element = this;
+        const id = parseInt(element.dataset.id);
+        const type = element.dataset.type;
+        const name = element.dataset.name;
+
+        if(currentItem) currentItem.classList.remove('active');
+        element.classList.add('active');
+        currentItem = element;
+        currentChatId = id;
+        currentChatType = type;
+        currentChatName = name;
+
+        chatTitle.innerHTML = name;
+        chatSubtitle.innerHTML = type === 'group' ? 'Group Chat' : 'Private Chat';
+        messageInput.disabled = false;
+        sendBtn.disabled = false;
+        messageInput.placeholder = 'Type a message...';
+
+        if(type === 'group' && socket && isConnected) socket.emit('join-group', id);
+
+        loadMessages(type, id);
+        closeSidebar();
+    }
+
+    function handleContextMenu(e) {
+        e.preventDefault();
+        const id = this.dataset.id;
+        const isFav = localStorage.getItem('fav_' + id) === 'true';
+        if(isFav) {
+            localStorage.removeItem('fav_' + id);
+            alert('❌ Removed from Favorites');
+        } else {
+            localStorage.setItem('fav_' + id, 'true');
+            alert('⭐ Added to Favorites');
+        }
+    }
+
+    function loadMessages(type, id) {
+        messagesDiv.innerHTML = '<div class="empty-chat">🍃 Loading messages...</div>';
+
+        fetch(`api-data.php?action=messages&type=${type}&id=${id}`)
+            .then(res => res.json())
+            .then(data => {
+                messagesDiv.innerHTML = '';
+                if(data.success && data.data && data.data.length > 0) {
+                    data.data.forEach(msg => displayMessage(msg));
+                    scrollToBottom();
+                } else {
+                    messagesDiv.innerHTML = '<div class="empty-chat">💬 No messages yet. Send the first one!</div>';
+                }
+            })
+            .catch(err => {
+                console.error('Load error:', err);
+                messagesDiv.innerHTML = '<div class="empty-chat">⚠️ Error loading messages. Server may be waking up.</div>';
+            });
+    }
+
+    function displayMessage(msg) {
+        const isSent = msg.from_user_id == userId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+        messageDiv.id = `msg-${msg.id}`;
+
+        let senderName = '';
+        if(!isSent && currentChatType === 'group' && msg.sender_name) {
+            senderName = `<strong style="font-size:12px;">${escapeHtml(msg.sender_name)}</strong><br>`;
+        }
+
+        let tickHtml = '';
+        if(isSent) {
+            if(msg.status === 'read') tickHtml = '<span class="tick tick-read">✓✓</span>';
+            else if(msg.status === 'delivered') tickHtml = '<span class="tick tick-delivered">✓✓</span>';
+            else tickHtml = '<span class="tick tick-sent">✓</span>';
+        }
+
+        messageDiv.innerHTML = `
+            <div class="bubble">
+                ${senderName}
+                ${escapeHtml(msg.message)}
+                <div class="message-info">
+                    ${formatTime(msg.sent_at)}
+                    ${tickHtml}
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    function sendMessage() {
+        const message = messageInput.value.trim();
+        if(!message || !currentChatId) return;
+        if(!isConnected) { alert('Not connected to chat server.'); return; }
+
+        const data = { from_user_id: userId, message: message };
+        if(currentChatType === 'group') data.group_id = currentChatId;
+        else data.to_user_id = currentChatId;
+
+        socket.emit('send-message', data);
+        messageInput.value = '';
+    }
+
     function initEmojiPicker() {
         if (window.EmojiPicker && !emojiPicker) {
             emojiPicker = new window.EmojiPicker.Picker({
@@ -258,7 +355,8 @@ $students = mysqli_query($conn, $students_query);
         tab.addEventListener('click', function() {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            filterChats(this.dataset.tab);
+            const tabName = this.dataset.tab;
+            filterChats(tabName);
         });
     });
 
@@ -270,23 +368,6 @@ $students = mysqli_query($conn, $students_query);
             else if(tabName === 'archive') item.style.display = localStorage.getItem('archived_' + item.dataset.id) === 'true' ? 'flex' : 'none';
         });
     }
-
-    // Right-click / long press for favorites
-    document.querySelectorAll('.chat-item').forEach(item => {
-        item.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            const id = this.dataset.id;
-            const isFav = localStorage.getItem('fav_' + id) === 'true';
-            if(isFav) {
-                localStorage.removeItem('fav_' + id);
-                alert('❌ Removed from Favorites');
-            } else {
-                localStorage.setItem('fav_' + id, 'true');
-                alert('⭐ Added to Favorites');
-            }
-            filterChats(document.querySelector('.tab.active').dataset.tab);
-        });
-    });
 
     // Search
     document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -338,102 +419,6 @@ $students = mysqli_query($conn, $students_query);
         fetch(SOCKET_URL + '/health').then(() => { if(socket) socket.disconnect(); setTimeout(connectSocket, 1000); }).catch(() => {});
     }
 
-    // ============================================
-    // LOAD MESSAGES - Using api-data.php
-    // ============================================
-    function selectChat(element) {
-        const id = parseInt(element.dataset.id);
-        const type = element.dataset.type;
-        const name = element.dataset.name;
-
-        if(currentItem) currentItem.classList.remove('active');
-        element.classList.add('active');
-        currentItem = element;
-        currentChatId = id;
-        currentChatType = type;
-        currentChatName = name;
-
-        chatTitle.innerHTML = name;
-        chatSubtitle.innerHTML = type === 'group' ? 'Group Chat' : 'Private Chat';
-        messageInput.disabled = false;
-        sendBtn.disabled = false;
-        messageInput.placeholder = 'Type a message...';
-
-        if(type === 'group' && socket && isConnected) socket.emit('join-group', id);
-
-        loadMessages(type, id);
-        closeSidebar();
-    }
-
-    function loadMessages(type, id) {
-        messagesDiv.innerHTML = '<div class="empty-chat">🍃 Loading messages...</div>';
-
-        fetch(`api-data.php?action=messages&type=${type}&id=${id}`)
-            .then(res => res.json())
-            .then(data => {
-                if(data.success && data.data) {
-                    messagesDiv.innerHTML = '';
-                    if(data.data.length === 0) {
-                        messagesDiv.innerHTML = '<div class="empty-chat">💬 No messages yet. Send the first one!</div>';
-                    } else {
-                        data.data.forEach(msg => displayMessage(msg));
-                        scrollToBottom();
-                    }
-                } else {
-                    messagesDiv.innerHTML = '<div class="empty-chat">⚠️ ' + (data.error || 'No messages found') + '</div>';
-                }
-            })
-            .catch(err => {
-                console.error('Load error:', err);
-                messagesDiv.innerHTML = '<div class="empty-chat">⚠️ Error loading messages. Make sure the server is running.</div>';
-            });
-    }
-
-    function displayMessage(msg) {
-        const isSent = msg.from_user_id == userId;
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-        messageDiv.id = `msg-${msg.id}`;
-
-        let senderName = '';
-        if(!isSent && currentChatType === 'group' && msg.sender_name) {
-            senderName = `<strong style="font-size:12px;">${escapeHtml(msg.sender_name)}</strong><br>`;
-        }
-
-        let tickHtml = '';
-        if(isSent) {
-            if(msg.status === 'read') tickHtml = '<span class="tick tick-read">✓✓</span>';
-            else if(msg.status === 'delivered') tickHtml = '<span class="tick tick-delivered">✓✓</span>';
-            else tickHtml = '<span class="tick tick-sent">✓</span>';
-        }
-
-        messageDiv.innerHTML = `
-            <div class="bubble">
-                ${senderName}
-                ${escapeHtml(msg.message)}
-                <div class="message-info">
-                    ${formatTime(msg.sent_at)}
-                    ${tickHtml}
-                </div>
-            </div>
-        `;
-        messagesDiv.appendChild(messageDiv);
-        scrollToBottom();
-    }
-
-    function sendMessage() {
-        const message = messageInput.value.trim();
-        if(!message || !currentChatId) return;
-        if(!isConnected) { alert('Not connected to chat server.'); return; }
-
-        const data = { from_user_id: userId, message: message };
-        if(currentChatType === 'group') data.group_id = currentChatId;
-        else data.to_user_id = currentChatId;
-
-        socket.emit('send-message', data);
-        messageInput.value = '';
-    }
-
     function scrollToBottom() { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
     function formatTime(datetime) {
         if(!datetime) return 'Just now';
@@ -448,11 +433,11 @@ $students = mysqli_query($conn, $students_query);
     function toggleSidebar() { document.getElementById('chatSidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
     function closeSidebar() { document.getElementById('chatSidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
-    document.querySelectorAll('.chat-item').forEach(item => { item.addEventListener('click', () => selectChat(item)); });
     messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
     setInterval(() => { if(isConnected && socket) socket.emit('ping'); }, 40000);
 
     connectSocket();
+    loadChatList();
 </script>
 </body>
 </html>
