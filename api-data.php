@@ -1,4 +1,9 @@
 <?php
+<?php
+session_start();
+echo "Session user_id = " . ($_SESSION['user_id'] ?? 'NOT SET');
+exit();
+?>
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 session_start();
