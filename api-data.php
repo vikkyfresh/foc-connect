@@ -1,8 +1,4 @@
 <?php
-session_start();
-echo "Session user_id = " . ($_SESSION['user_id'] ?? 'NOT SET');
-exit();
-?>
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 session_start();
@@ -14,16 +10,17 @@ if(!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$cc_host = 'btpaf0bjadqhld71gzms-mysql.services.clever-cloud.com';
-$cc_user = 'usaypg7enbwrjvnm';
-$cc_pass = '0jjwQuQBJ48iRZp6EynT';
-$cc_name = 'btpaf0bjadqhld71gzms';
+// YOUR INFINITYFREE DATABASE CREDENTIALS
+$cc_host = 'sql200.infinityfree.com';
+$cc_user = 'if0_41808042';
+$cc_pass = 'f86pbwvj';
+$cc_name = 'if0_41808042_foc_connect';
 $cc_port = 3306;
 
 $conn = mysqli_connect($cc_host, $cc_user, $cc_pass, $cc_name, $cc_port);
 
 if (!$conn) {
-    echo json_encode(['error' => 'Database connection failed']);
+    echo json_encode(['error' => 'Database connection failed: ' . mysqli_connect_error()]);
     exit();
 }
 
