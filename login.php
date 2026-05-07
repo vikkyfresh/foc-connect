@@ -22,6 +22,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['department_id'] = $row['department_id'];
             $_SESSION['dept_code'] = $row['dept_code'];
             $_SESSION['level_id'] = $row['level_id'];
+            $_SESSION['matric_number'] = $row['matric_number'];
+            
+            // =============================================
+            // SYNC USER TO CHAT DATABASE (InfinityFree)
+            // =============================================
+            $chat_host = 'sql200.infinityfree.com';
+            $chat_user = 'if0_41808042';
+            $chat_pass = 'f86pbwvj';
+            $chat_db = 'if0_41808042_foc_connect';
+            
+            $chat_conn = mysqli_connect($chat_host, $chat_user, $chat_pass, $chat_db);
+            
+            if ($chat_conn) {
+                // Check if user exists in chat database
+                $check_query = "SELECT id FROM users WHERE id = " . intval($row['id']);
+                $check_result = mysqli_query($chat_conn, $check_query);
+                
+                if (mysqli_num_rows($check_result) == 0) {
+                    // Add user to chat database
+                    $insert_query = "INSERT INTO users (id, name, department_id, matric_number, role, created_at) 
+                                     VALUES (
+                                         " . intval($row['id']) . ", 
+                                         '" . mysqli_real_escape_string($chat_conn, $row['name']) . "', 
+                                         " . intval($row['department_id'] ?? 1) . ", 
+                                         '" . mysqli_real_escape_string($chat_conn, $row['matric_number'] ?? '') . "', 
+                                         '" . mysqli_real_escape_string($chat_conn, $row['role'] ?? 'student') . "',
+                                         NOW()
+                                     )";
+                    
+                    if (mysqli_query($chat_conn, $insert_query)) {
+                        error_log("User {$row['id']} added to chat database");
+                    } else {
+                        error_log("Failed to add user to chat database: " . mysqli_error($chat_conn));
+                    }
+                } else {
+                    // Update existing user
+                    $update_query = "UPDATE users SET 
+                                     name = '" . mysqli_real_escape_string($chat_conn, $row['name']) . "',
+                                     department_id = " . intval($row['department_id'] ?? 1) . ",
+                                     matric_number = '" . mysqli_real_escape_string($chat_conn, $row['matric_number'] ?? '') . "'
+                                     WHERE id = " . intval($row['id']);
+                    mysqli_query($chat_conn, $update_query);
+                }
+                
+                mysqli_close($chat_conn);
+            } else {
+                error_log("Chat database connection failed: " . mysqli_connect_error());
+            }
+            // =============================================
             
             header("Location: dashboard.php");
             exit();
@@ -40,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0F4C3A">
+    <link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -62,6 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             width: 100%;
             max-width: 400px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         h1 {
             font-size: 32px;
@@ -103,8 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-top: 16px;
             transition: all 0.2s;
         }
-        button:active {
+        button:hover {
             background: #236753;
+        }
+        button:active {
             transform: scale(0.98);
         }
         .error {
@@ -136,6 +193,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #0F4C3A;
             text-align: center;
         }
+        
+        /* Loading state */
+        button.loading {
+            background: #8A9B97;
+            cursor: wait;
+        }
     </style>
 </head>
 <body>
@@ -144,13 +207,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="subtitle">Faculty of Computing</div>
         
         <?php if($error): ?>
-            <div class="error"><?php echo $error; ?></div>
+            <div class="error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         
-        <form method="POST">
+        <form method="POST" id="loginForm">
             <input type="text" name="email" placeholder="Email or Matric Number" required autofocus>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login →</button>
+            <button type="submit" id="loginBtn">Login →</button>
         </form>
         
         <div class="register-link">
@@ -161,5 +224,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             💚 Connect with your department • Stay updated • Learn together
         </div>
     </div>
+    
+    <script>
+        // Add loading state to button
+        document.getElementById('loginForm').addEventListener('submit', function() {
+            const btn = document.getElementById('loginBtn');
+            btn.innerHTML = '⏳ Logging in...';
+            btn.classList.add('loading');
+            btn.disabled = true;
+        });
+    </script>
 </body>
 </html>
