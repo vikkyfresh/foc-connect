@@ -18,40 +18,69 @@ $user_id = $_SESSION['user_id'];
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #E8F5E9; height: 100vh; display: flex; }
-        .sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
-        .sidebar-header { background: #8BC34A; padding: 20px; color: #1B5E20; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #E8F5E9; height: 100vh; display: flex; overflow: hidden; }
+        
+        /* Sidebar - Fixed width, scrollable */
+        .sidebar { width: 300px; background: white; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+        .sidebar-header { background: #8BC34A; padding: 20px; color: #1B5E20; position: sticky; top: 0; z-index: 10; }
+        .sidebar-header h2 { font-size: 20px; }
+        .sidebar-header p { font-size: 14px; opacity: 0.9; margin-top: 5px; }
         .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { padding: 15px; cursor: pointer; border-bottom: 1px solid #eee; display: flex; gap: 10px; align-items: center; }
+        .chat-item { padding: 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; gap: 12px; align-items: center; transition: background 0.2s; }
         .chat-item:hover { background: #f5f5f5; }
-        .chat-avatar { width: 45px; height: 45px; background: #C5E1A5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .chat-name { font-weight: bold; }
-        .chat-preview { font-size: 12px; color: #888; }
-        .chat-main { flex: 1; display: flex; flex-direction: column; background: white; }
-        .chat-header { padding: 15px; border-bottom: 1px solid #ddd; background: white; }
-        .messages { flex: 1; overflow-y: auto; padding: 20px; background: #F5F8F0; }
-        .message { margin-bottom: 15px; display: flex; }
+        .chat-avatar { width: 48px; height: 48px; background: #C5E1A5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-name { font-weight: 600; color: #333; margin-bottom: 4px; }
+        .chat-preview { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .section-title { padding: 10px 15px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #666; letter-spacing: 0.5px; }
+        
+        /* Main Chat Area - Flex column for proper layout */
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: white; height: 100vh; overflow: hidden; }
+        
+        /* Chat Header - Fixed at top */
+        .chat-header { padding: 15px 20px; border-bottom: 1px solid #e0e0e0; background: white; flex-shrink: 0; }
+        .chat-header h3 { font-size: 18px; color: #333; }
+        .chat-header .status { font-size: 12px; color: #4caf50; margin-top: 4px; }
+        
+        /* Messages Container - Scrollable area */
+        .messages-container { flex: 1; overflow-y: auto; padding: 20px; background: #F5F8F0; min-height: 0; }
+        .message { margin-bottom: 16px; display: flex; }
         .message.sent { justify-content: flex-end; }
         .message.received { justify-content: flex-start; }
-        .bubble { max-width: 60%; padding: 10px 15px; border-radius: 20px; }
-        .message.sent .bubble { background: #DCF8C6; }
-        .message.received .bubble { background: white; border: 1px solid #ddd; }
-        .message-info { font-size: 10px; margin-top: 4px; color: #888; text-align: right; }
-        .input-area { padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; }
-        .input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 25px; }
-        .input-area button { background: #8BC34A; color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; }
-        .status { font-size: 11px; margin-top: 5px; color: #888; }
-        .section-title { padding: 10px 15px; background: #f0f0f0; font-weight: bold; font-size: 12px; color: #666; }
-        @media (max-width: 768px) { .sidebar { position: fixed; left: -300px; height: 100%; z-index: 100; transition: 0.3s; } .sidebar.open { left: 0; } .menu-btn { position: fixed; bottom: 20px; right: 20px; background: #8BC34A; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; } }
-        .menu-btn { display: none; }
-        @media (max-width: 768px) { .menu-btn { display: block; } }
+        .bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; word-wrap: break-word; }
+        .message.sent .bubble { background: #DCF8C6; border-bottom-right-radius: 4px; }
+        .message.received .bubble { background: white; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
+        .message-info { font-size: 10px; margin-top: 4px; color: #999; text-align: right; }
+        .sender-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; color: #1B5E20; }
+        
+        /* Input Area - Fixed at bottom */
+        .input-area { padding: 15px 20px; border-top: 1px solid #e0e0e0; background: white; display: flex; gap: 12px; flex-shrink: 0; }
+        .input-area input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 25px; font-size: 14px; outline: none; transition: border 0.2s; }
+        .input-area input:focus { border-color: #8BC34A; }
+        .input-area input:disabled { background: #f5f5f5; cursor: not-allowed; }
+        .input-area button { background: #8BC34A; color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; }
+        .input-area button:hover { background: #7cb342; }
+        .input-area button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .empty { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-chat { text-align: center; padding: 60px 20px; color: #999; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .empty-chat span { font-size: 48px; }
+        
+        /* Mobile Responsive */
+        .menu-btn { display: none; position: fixed; bottom: 20px; right: 20px; background: #8BC34A; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -300px; height: 100vh; z-index: 100; transition: 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+            .sidebar.open { left: 0; }
+            .menu-btn { display: flex; align-items: center; justify-content: center; }
+        }
     </style>
 </head>
 <body>
 
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <h2>💬 Chats</h2>
+        <h2>💬 FoC Connect</h2>
         <p><?php echo htmlspecialchars($user_name); ?></p>
     </div>
     <div>
@@ -65,21 +94,25 @@ $user_id = $_SESSION['user_id'];
 <div class="chat-main">
     <div class="chat-header">
         <h3 id="chatTitle">💬 FoC Connect</h3>
-        <p id="chatSubtitle" class="status">Select a chat</p>
+        <p id="chatSubtitle" class="status">Select a conversation</p>
     </div>
-    <div class="messages" id="messages">
-        <div class="empty">💬 Select a conversation to start messaging</div>
+    
+    <div class="messages-container" id="messagesContainer">
+        <div class="empty-chat">
+            <span>💬</span>
+            <p>Select a conversation to start messaging</p>
+        </div>
     </div>
+    
     <div class="input-area">
-        <input type="text" id="messageInput" placeholder="Select a chat first..." disabled>
+        <input type="text" id="messageInput" placeholder="Type a message..." disabled>
         <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
     </div>
 </div>
 
-<button class="menu-btn" onclick="toggleSidebar()">💬</button>
+<button class="menu-btn" onclick="toggleSidebar()">☰</button>
 
 <script>
-// Make sure there is NO PHP code or HTML inside this script tag
 const SOCKET_URL = 'https://foc-connect-websocket.onrender.com';
 let userId = <?php echo (int)$user_id; ?>;
 let socket = null;
@@ -93,16 +126,19 @@ function loadChats() {
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('groupsList');
-            if (data.success && data.data.length > 0) {
+            if (data.success && data.data && data.data.length > 0) {
                 container.innerHTML = '';
                 data.data.forEach(group => {
                     container.innerHTML += '<div class="chat-item" onclick="selectChat(' + group.id + ', \'group\', \'' + escapeHtml(group.name) + '\')">' +
                         '<div class="chat-avatar">👥</div>' +
-                        '<div><div class="chat-name">' + escapeHtml(group.name) + '</div><div class="chat-preview">Group chat</div></div>' +
+                        '<div class="chat-info">' +
+                        '<div class="chat-name">' + escapeHtml(group.name) + '</div>' +
+                        '<div class="chat-preview">Group chat • ' + (group.member_count || '0') + ' members</div>' +
+                        '</div>' +
                         '</div>';
                 });
             } else {
-                container.innerHTML = '<div class="empty" style="padding:20px;">No groups yet</div>';
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No groups yet</div>';
             }
         })
         .catch(err => console.error('Groups error:', err));
@@ -111,16 +147,19 @@ function loadChats() {
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('contactsList');
-            if (data.success && data.data.length > 0) {
+            if (data.success && data.data && data.data.length > 0) {
                 container.innerHTML = '';
                 data.data.forEach(contact => {
                     container.innerHTML += '<div class="chat-item" onclick="selectChat(' + contact.id + ', \'user\', \'' + escapeHtml(contact.name) + '\')">' +
                         '<div class="chat-avatar">👤</div>' +
-                        '<div><div class="chat-name">' + escapeHtml(contact.name) + '</div><div class="chat-preview">' + escapeHtml(contact.matric_number || 'Student') + '</div></div>' +
+                        '<div class="chat-info">' +
+                        '<div class="chat-name">' + escapeHtml(contact.name) + '</div>' +
+                        '<div class="chat-preview">' + escapeHtml(contact.matric_number || 'Student') + '</div>' +
+                        '</div>' +
                         '</div>';
                 });
             } else {
-                container.innerHTML = '<div class="empty" style="padding:20px;">No contacts yet</div>';
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No contacts yet</div>';
             }
         })
         .catch(err => console.error('Contacts error:', err));
@@ -131,7 +170,7 @@ function selectChat(id, type, name) {
     currentChatType = type;
     currentChatName = name;
     document.getElementById('chatTitle').innerHTML = escapeHtml(name);
-    document.getElementById('chatSubtitle').innerHTML = (type === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓');
+    document.getElementById('chatSubtitle').innerHTML = (type === 'group' ? 'Group Chat' : 'Private Chat');
     document.getElementById('messageInput').disabled = false;
     document.getElementById('sendBtn').disabled = false;
     document.getElementById('messageInput').placeholder = 'Type a message...';
@@ -148,31 +187,32 @@ function selectChat(id, type, name) {
 }
 
 function loadMessages(type, id) {
-    const container = document.getElementById('messages');
-    container.innerHTML = '<div class="empty">Loading messages...</div>';
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = '<div class="empty-chat"><span>⏳</span><p>Loading messages...</p></div>';
     
     fetch('api-data.php?action=messages&type=' + type + '&id=' + id)
         .then(res => res.json())
         .then(data => {
             container.innerHTML = '';
-            if (data.success && data.data.length > 0) {
+            if (data.success && data.data && data.data.length > 0) {
                 data.data.forEach(msg => displayMessage(msg));
                 scrollToBottom();
             } else {
-                container.innerHTML = '<div class="empty">💬 No messages yet. Send the first one!</div>';
+                container.innerHTML = '<div class="empty-chat"><span>💬</span><p>No messages yet. Send the first one!</p></div>';
             }
         })
         .catch(err => {
             console.error('Load messages error:', err);
-            container.innerHTML = '<div class="empty">⚠️ Error loading messages</div>';
+            container.innerHTML = '<div class="empty-chat"><span>⚠️</span><p>Error loading messages</p></div>';
         });
 }
 
 function displayMessage(msg) {
     const isSent = parseInt(msg.from_user_id) === parseInt(userId);
-    const container = document.getElementById('messages');
+    const container = document.getElementById('messagesContainer');
     
-    const emptyDiv = container.querySelector('.empty');
+    // Remove empty state if it exists
+    const emptyDiv = container.querySelector('.empty-chat');
     if (emptyDiv) emptyDiv.remove();
     
     const div = document.createElement('div');
@@ -180,10 +220,13 @@ function displayMessage(msg) {
     
     let senderHtml = '';
     if (!isSent && currentChatType === 'group' && msg.sender_name) {
-        senderHtml = '<strong>' + escapeHtml(msg.sender_name) + '</strong><br>';
+        senderHtml = '<div class="sender-name">' + escapeHtml(msg.sender_name) + '</div>';
     }
     
-    div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(msg.message || msg.text || '') + '<div class="message-info">' + formatTime(msg.sent_at) + '</div></div>';
+    const messageText = msg.message || msg.text || '';
+    const timeStamp = msg.sent_at || msg.created_at || new Date().toISOString();
+    
+    div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(messageText) + '<div class="message-info">' + formatTime(timeStamp) + '</div></div>';
     container.appendChild(div);
     scrollToBottom();
 }
@@ -209,30 +252,34 @@ function sendMessage() {
 function connectSocket() {
     const statusSpan = document.getElementById('chatSubtitle');
     statusSpan.innerHTML = 'Connecting...';
+    statusSpan.style.color = '#ff9800';
     
     socket = io(SOCKET_URL, { transports: ['websocket', 'polling'], reconnection: true });
     
     socket.on('connect', () => {
         isConnected = true;
         console.log('Socket connected:', socket.id);
-        statusSpan.innerHTML = currentChatName ? (currentChatType === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓') : 'Connected ✓';
+        statusSpan.innerHTML = 'Connected ✓';
+        statusSpan.style.color = '#4caf50';
         socket.emit('user-joined', userId);
     });
     
     socket.on('disconnect', () => {
         isConnected = false;
         console.log('Socket disconnected');
-        statusSpan.innerHTML = 'Disconnected';
+        statusSpan.innerHTML = 'Offline';
+        statusSpan.style.color = '#f44336';
     });
     
     socket.on('connect_error', (error) => {
         isConnected = false;
         console.error('Socket error:', error);
-        statusSpan.innerHTML = 'Offline';
+        statusSpan.innerHTML = 'Connecting failed';
+        statusSpan.style.color = '#f44336';
     });
     
     socket.on('new-message', (msg) => {
-        console.log('New message:', msg);
+        console.log('New message received:', msg);
         if (currentChatId && ((currentChatType === 'group' && msg.group_id == currentChatId) ||
             (currentChatType === 'user' && (msg.from_user_id == currentChatId || msg.to_user_id == currentChatId)))) {
             displayMessage(msg);
@@ -241,7 +288,7 @@ function connectSocket() {
 }
 
 function scrollToBottom() {
-    const container = document.getElementById('messages');
+    const container = document.getElementById('messagesContainer');
     container.scrollTop = container.scrollHeight;
 }
 
@@ -249,10 +296,12 @@ function formatTime(datetime) {
     if (!datetime) return 'Just now';
     try {
         const date = new Date(datetime);
-        const diff = new Date() - date;
+        const now = new Date();
+        const diff = now - date;
         if (diff < 60000) return 'Just now';
-        if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + ' hours ago';
+        return date.toLocaleDateString();
     } catch (e) {
         return 'Just now';
     }
