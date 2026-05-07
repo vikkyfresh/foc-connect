@@ -41,8 +41,6 @@ $user_id = $_SESSION['user_id'];
         .input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 25px; }
         .input-area button { background: #8BC34A; color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; }
         .status { font-size: 11px; margin-top: 5px; color: #888; }
-        .connected { color: green; }
-        .empty { text-align: center; padding: 40px; color: #888; }
         .section-title { padding: 10px 15px; background: #f0f0f0; font-weight: bold; font-size: 12px; color: #666; }
         @media (max-width: 768px) { .sidebar { position: fixed; left: -300px; height: 100%; z-index: 100; transition: 0.3s; } .sidebar.open { left: 0; } .menu-btn { position: fixed; bottom: 20px; right: 20px; background: #8BC34A; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; } }
         .menu-btn { display: none; }
@@ -81,9 +79,9 @@ $user_id = $_SESSION['user_id'];
 <button class="menu-btn" onclick="toggleSidebar()">💬</button>
 
 <script>
-// JavaScript starts here - make sure no PHP code or HTML is inside this script tag
+// Make sure there is NO PHP code or HTML inside this script tag
 const SOCKET_URL = 'https://foc-connect-websocket.onrender.com';
-let userId = <?php echo json_encode($user_id); ?>;
+let userId = <?php echo (int)$user_id; ?>;
 let socket = null;
 let isConnected = false;
 let currentChatId = null;
@@ -95,7 +93,7 @@ function loadChats() {
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('groupsList');
-            if(data.success && data.data && data.data.length > 0) {
+            if (data.success && data.data.length > 0) {
                 container.innerHTML = '';
                 data.data.forEach(group => {
                     container.innerHTML += '<div class="chat-item" onclick="selectChat(' + group.id + ', \'group\', \'' + escapeHtml(group.name) + '\')">' +
@@ -107,13 +105,13 @@ function loadChats() {
                 container.innerHTML = '<div class="empty" style="padding:20px;">No groups yet</div>';
             }
         })
-        .catch(err => console.log('Groups error:', err));
+        .catch(err => console.error('Groups error:', err));
 
     fetch('api-data.php?action=contacts')
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById('contactsList');
-            if(data.success && data.data && data.data.length > 0) {
+            if (data.success && data.data.length > 0) {
                 container.innerHTML = '';
                 data.data.forEach(contact => {
                     container.innerHTML += '<div class="chat-item" onclick="selectChat(' + contact.id + ', \'user\', \'' + escapeHtml(contact.name) + '\')">' +
@@ -125,7 +123,7 @@ function loadChats() {
                 container.innerHTML = '<div class="empty" style="padding:20px;">No contacts yet</div>';
             }
         })
-        .catch(err => console.log('Contacts error:', err));
+        .catch(err => console.error('Contacts error:', err));
 }
 
 function selectChat(id, type, name) {
@@ -138,13 +136,13 @@ function selectChat(id, type, name) {
     document.getElementById('sendBtn').disabled = false;
     document.getElementById('messageInput').placeholder = 'Type a message...';
     
-    if(type === 'group' && socket && isConnected) {
+    if (type === 'group' && socket && isConnected) {
         socket.emit('join-group', id);
     }
     
     loadMessages(type, id);
     
-    if(window.innerWidth <= 768) {
+    if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('open');
     }
 }
@@ -157,7 +155,7 @@ function loadMessages(type, id) {
         .then(res => res.json())
         .then(data => {
             container.innerHTML = '';
-            if(data.success && data.data && data.data.length > 0) {
+            if (data.success && data.data.length > 0) {
                 data.data.forEach(msg => displayMessage(msg));
                 scrollToBottom();
             } else {
@@ -175,22 +173,17 @@ function displayMessage(msg) {
     const container = document.getElementById('messages');
     
     const emptyDiv = container.querySelector('.empty');
-    if(emptyDiv) {
-        emptyDiv.remove();
-    }
+    if (emptyDiv) emptyDiv.remove();
     
     const div = document.createElement('div');
     div.className = 'message ' + (isSent ? 'sent' : 'received');
     
     let senderHtml = '';
-    if(!isSent && currentChatType === 'group' && msg.sender_name) {
+    if (!isSent && currentChatType === 'group' && msg.sender_name) {
         senderHtml = '<strong>' + escapeHtml(msg.sender_name) + '</strong><br>';
     }
     
-    const messageText = msg.message || msg.text || '';
-    const timeStamp = msg.sent_at || msg.created_at || new Date().toISOString();
-    
-    div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(messageText) + '<div class="message-info">' + formatTime(timeStamp) + '</div></div>';
+    div.innerHTML = '<div class="bubble">' + senderHtml + escapeHtml(msg.message || msg.text || '') + '<div class="message-info">' + formatTime(msg.sent_at) + '</div></div>';
     container.appendChild(div);
     scrollToBottom();
 }
@@ -199,22 +192,15 @@ function sendMessage() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
     
-    if(!message) return;
-    if(!currentChatId) {
-        alert('Please select a chat first');
-        return;
-    }
-    if(!isConnected) {
-        alert('Not connected to chat server. Please refresh the page.');
+    if (!message || !currentChatId) return;
+    if (!isConnected) {
+        alert('Not connected to chat server');
         return;
     }
     
     const data = { from_user_id: userId, message: message };
-    if(currentChatType === 'group') {
-        data.group_id = currentChatId;
-    } else {
-        data.to_user_id = currentChatId;
-    }
+    if (currentChatType === 'group') data.group_id = currentChatId;
+    else data.to_user_id = currentChatId;
     
     socket.emit('send-message', data);
     input.value = '';
@@ -224,38 +210,30 @@ function connectSocket() {
     const statusSpan = document.getElementById('chatSubtitle');
     statusSpan.innerHTML = 'Connecting...';
     
-    socket = io(SOCKET_URL, { 
-        transports: ['websocket', 'polling'], 
-        reconnection: true,
-        reconnectionAttempts: 5
-    });
+    socket = io(SOCKET_URL, { transports: ['websocket', 'polling'], reconnection: true });
     
     socket.on('connect', () => {
         isConnected = true;
         console.log('Socket connected:', socket.id);
-        if(currentChatName) {
-            statusSpan.innerHTML = (currentChatType === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓');
-        } else {
-            statusSpan.innerHTML = 'Connected ✓';
-        }
+        statusSpan.innerHTML = currentChatName ? (currentChatType === 'group' ? 'Group Chat • Connected ✓' : 'Private Chat • Connected ✓') : 'Connected ✓';
         socket.emit('user-joined', userId);
     });
     
     socket.on('disconnect', () => {
         isConnected = false;
         console.log('Socket disconnected');
-        statusSpan.innerHTML = 'Disconnected - reconnecting...';
+        statusSpan.innerHTML = 'Disconnected';
     });
     
     socket.on('connect_error', (error) => {
         isConnected = false;
         console.error('Socket error:', error);
-        statusSpan.innerHTML = 'Offline - check connection';
+        statusSpan.innerHTML = 'Offline';
     });
     
     socket.on('new-message', (msg) => {
-        console.log('New message received:', msg);
-        if(currentChatId && ((currentChatType === 'group' && msg.group_id == currentChatId) ||
+        console.log('New message:', msg);
+        if (currentChatId && ((currentChatType === 'group' && msg.group_id == currentChatId) ||
             (currentChatType === 'user' && (msg.from_user_id == currentChatId || msg.to_user_id == currentChatId)))) {
             displayMessage(msg);
         }
@@ -268,22 +246,20 @@ function scrollToBottom() {
 }
 
 function formatTime(datetime) {
-    if(!datetime) return 'Just now';
+    if (!datetime) return 'Just now';
     try {
         const date = new Date(datetime);
-        const now = new Date();
-        const diff = now - date;
-        if(diff < 60000) return 'Just now';
-        if(diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-        if(diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-        return date.toLocaleDateString();
-    } catch(e) {
+        const diff = new Date() - date;
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
         return 'Just now';
     }
 }
 
 function escapeHtml(text) {
-    if(!text) return '';
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -298,11 +274,8 @@ console.log('Page loaded, user ID:', userId);
 connectSocket();
 loadChats();
 
-// Enter key to send message
 document.getElementById('messageInput').addEventListener('keypress', function(e) {
-    if(e.key === 'Enter') {
-        sendMessage();
-    }
+    if (e.key === 'Enter') sendMessage();
 });
 </script>
 </body>
