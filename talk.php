@@ -1,117 +1,3 @@
-<?php
-session_start();
-
-if(!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-$user_name = $_SESSION['name'];
-$user_id = $_SESSION['user_id'];
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chat - FoC Connect</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #E8F5E9; height: 100vh; display: flex; overflow: hidden; }
-        
-        /* Sidebar - Fixed width, scrollable */
-        .sidebar { width: 300px; background: white; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
-        .sidebar-header { background: #8BC34A; padding: 20px; color: #1B5E20; position: sticky; top: 0; z-index: 10; }
-        .sidebar-header h2 { font-size: 20px; }
-        .sidebar-header p { font-size: 14px; opacity: 0.9; margin-top: 5px; }
-        .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { padding: 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; gap: 12px; align-items: center; transition: background 0.2s; }
-        .chat-item:hover { background: #f5f5f5; }
-        .chat-avatar { width: 48px; height: 48px; background: #C5E1A5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-        .chat-info { flex: 1; min-width: 0; }
-        .chat-name { font-weight: 600; color: #333; margin-bottom: 4px; }
-        .chat-preview { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .section-title { padding: 10px 15px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #666; letter-spacing: 0.5px; }
-        
-        /* Main Chat Area - Flex column for proper layout */
-        .chat-main { flex: 1; display: flex; flex-direction: column; background: white; height: 100vh; overflow: hidden; }
-        
-        /* Chat Header - Fixed at top */
-        .chat-header { padding: 15px 20px; border-bottom: 1px solid #e0e0e0; background: white; flex-shrink: 0; }
-        .chat-header h3 { font-size: 18px; color: #333; }
-        .chat-header .status { font-size: 12px; color: #4caf50; margin-top: 4px; }
-        
-        /* Messages Container - Scrollable area */
-        .messages-container { flex: 1; overflow-y: auto; padding: 20px; background: #F5F8F0; min-height: 0; }
-        .message { margin-bottom: 16px; display: flex; }
-        .message.sent { justify-content: flex-end; }
-        .message.received { justify-content: flex-start; }
-        .bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; word-wrap: break-word; }
-        .message.sent .bubble { background: #DCF8C6; border-bottom-right-radius: 4px; }
-        .message.received .bubble { background: white; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
-        .message-info { font-size: 10px; margin-top: 4px; color: #999; text-align: right; }
-        .sender-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; color: #1B5E20; }
-        
-        /* Input Area - Fixed at bottom */
-        .input-area { padding: 15px 20px; border-top: 1px solid #e0e0e0; background: white; display: flex; gap: 12px; flex-shrink: 0; }
-        .input-area input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 25px; font-size: 14px; outline: none; transition: border 0.2s; }
-        .input-area input:focus { border-color: #8BC34A; }
-        .input-area input:disabled { background: #f5f5f5; cursor: not-allowed; }
-        .input-area button { background: #8BC34A; color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; }
-        .input-area button:hover { background: #7cb342; }
-        .input-area button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .empty { text-align: center; padding: 60px 20px; color: #999; }
-        .empty-chat { text-align: center; padding: 60px 20px; color: #999; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .empty-chat span { font-size: 48px; }
-        
-        /* Mobile Responsive */
-        .menu-btn { display: none; position: fixed; bottom: 20px; right: 20px; background: #8BC34A; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; left: -300px; height: 100vh; z-index: 100; transition: 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-            .sidebar.open { left: 0; }
-            .menu-btn { display: flex; align-items: center; justify-content: center; }
-        }
-    </style>
-</head>
-<body>
-
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <h2>💬 FoC Connect</h2>
-        <p><?php echo htmlspecialchars($user_name); ?></p>
-    </div>
-    <div>
-        <div class="section-title">📁 GROUPS</div>
-        <div id="groupsList" class="chat-list"></div>
-        <div class="section-title">👤 CONTACTS</div>
-        <div id="contactsList" class="chat-list"></div>
-    </div>
-</div>
-
-<div class="chat-main">
-    <div class="chat-header">
-        <h3 id="chatTitle">💬 FoC Connect</h3>
-        <p id="chatSubtitle" class="status">Select a conversation</p>
-    </div>
-    
-    <div class="messages-container" id="messagesContainer">
-        <div class="empty-chat">
-            <span>💬</span>
-            <p>Select a conversation to start messaging</p>
-        </div>
-    </div>
-    
-    <div class="input-area">
-        <input type="text" id="messageInput" placeholder="Type a message..." disabled>
-        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
-    </div>
-</div>
-
-<button class="menu-btn" onclick="toggleSidebar()">☰</button>
-
 <script>
 const SOCKET_URL = 'https://foc-connect-websocket.onrender.com';
 let userId = <?php echo (int)$user_id; ?>;
@@ -121,10 +7,20 @@ let currentChatId = null;
 let currentChatType = null;
 let currentChatName = '';
 
+// Check if user is valid
+if (!userId || userId === 0) {
+    alert('Error: Not logged in properly. Please logout and login again.');
+    window.location.href = 'login.php';
+}
+
 function loadChats() {
-    fetch('api-data.php?action=groups')
+    console.log('Loading chats for user:', userId);
+    
+    // ✅ FIXED: Added user_id parameter
+    fetch('api-data.php?action=groups&user_id=' + userId)
         .then(res => res.json())
         .then(data => {
+            console.log('Groups response:', data);
             const container = document.getElementById('groupsList');
             if (data.success && data.data && data.data.length > 0) {
                 container.innerHTML = '';
@@ -133,7 +29,7 @@ function loadChats() {
                         '<div class="chat-avatar">👥</div>' +
                         '<div class="chat-info">' +
                         '<div class="chat-name">' + escapeHtml(group.name) + '</div>' +
-                        '<div class="chat-preview">Group chat • ' + (group.member_count || '0') + ' members</div>' +
+                        '<div class="chat-preview">Group chat</div>' +
                         '</div>' +
                         '</div>';
                 });
@@ -143,9 +39,11 @@ function loadChats() {
         })
         .catch(err => console.error('Groups error:', err));
 
-    fetch('api-data.php?action=contacts')
+    // ✅ FIXED: Added user_id parameter
+    fetch('api-data.php?action=contacts&user_id=' + userId)
         .then(res => res.json())
         .then(data => {
+            console.log('Contacts response:', data);
             const container = document.getElementById('contactsList');
             if (data.success && data.data && data.data.length > 0) {
                 container.innerHTML = '';
@@ -190,9 +88,11 @@ function loadMessages(type, id) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '<div class="empty-chat"><span>⏳</span><p>Loading messages...</p></div>';
     
-    fetch('api-data.php?action=messages&type=' + type + '&id=' + id)
+    // ✅ FIXED: Added user_id parameter
+    fetch('api-data.php?action=messages&type=' + type + '&id=' + id + '&user_id=' + userId)
         .then(res => res.json())
         .then(data => {
+            console.log('Messages response:', data);
             container.innerHTML = '';
             if (data.success && data.data && data.data.length > 0) {
                 data.data.forEach(msg => displayMessage(msg));
@@ -245,6 +145,7 @@ function sendMessage() {
     if (currentChatType === 'group') data.group_id = currentChatId;
     else data.to_user_id = currentChatId;
     
+    console.log('Sending message:', data);
     socket.emit('send-message', data);
     input.value = '';
 }
@@ -274,7 +175,7 @@ function connectSocket() {
     socket.on('connect_error', (error) => {
         isConnected = false;
         console.error('Socket error:', error);
-        statusSpan.innerHTML = 'Connecting failed';
+        statusSpan.innerHTML = 'Connection failed';
         statusSpan.style.color = '#f44336';
     });
     
@@ -327,5 +228,3 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
     if (e.key === 'Enter') sendMessage();
 });
 </script>
-</body>
-</html>
